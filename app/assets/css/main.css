@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+@plugin 'daisyui';
+
+:root {
+    color-scheme: light dark;
+}
+
+html,
+body,
+#__nuxt {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: Inter, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    @apply bg-base-200 text-base-content;
+}
+
+.card-grid {
+    @apply grid gap-6 lg:grid-cols-2;
+}
