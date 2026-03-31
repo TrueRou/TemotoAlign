@@ -2,41 +2,181 @@
 import ExportWorker from '../workers/export.worker?worker'
 
 const store = useAlignTaskStore()
-const { evaluate } = useCapabilityGate()
 const { probeFile } = useMediaProbe()
 const { prepareForAlignment } = useAudioPreparation()
 const { align } = useAlignApi()
 const { deliver } = useExportDelivery()
 const { prepareMixedAudio } = usePreviewExporter()
 
-const runningCapabilityCheck = ref(false)
-const muteClip1 = ref(false)
-const muteClip2 = ref(false)
+type TrackId = 'clip1' | 'clip2'
+
+interface TrackControlState {
+    mute: boolean
+}
+
+const trackControls = reactive<Record<TrackId, TrackControlState>>({
+    clip1: { mute: false },
+    clip2: { mute: false },
+})
+const previewVideo = ref<HTMLVideoElement | null>(null)
+const previewObjectUrl = ref<string | null>(null)
+const timelineCursorSec = ref(0)
+const syncingPreviewVideo = ref(false)
+
+const hasSelectedMedia = computed(() => Boolean(store.clip1File && store.clip2File))
+const hasStartedAlignFlow = computed(() => {
+    return store.task.phase !== 'idle' || Boolean(store.alignResult)
+})
+const showInputPanel = computed(() => !hasStartedAlignFlow.value)
+const showTimelinePanel = computed(() => hasSelectedMedia.value && hasStartedAlignFlow.value)
+const isAligning = computed(() => store.task.phase === 'aligning')
+const isExporting = computed(() => store.task.phase === 'exporting')
 
 const canStartAlign = computed(() => {
-    return Boolean(store.clip1File && store.clip2File && store.capabilityReport?.status !== 'deny')
+    return hasSelectedMedia.value && !isAligning.value && !isExporting.value
 })
 
-async function runCapabilityCheck() {
-    runningCapabilityCheck.value = true
-    store.task.phase = 'probing'
-    store.task.message = '正在检查本地导出能力...'
-    store.task.progress = 0.05
+const timelineDurationSec = computed(() => {
+    const clip1Start = store.alignResult?.clip1StartSec ?? 0
+    const clip2Start = store.alignResult?.clip2StartSec ?? 0
+    const clip1Duration = store.clip1Probe?.durationSec ?? 0
+    const clip2Duration = store.clip2Probe?.durationSec ?? 0
+    const maxDuration = Math.max(
+        clip1Start + clip1Duration,
+        clip2Start + clip2Duration,
+        store.alignResult?.outputDurationSec ?? 0,
+        1,
+    )
 
-    try {
-        store.capabilityReport = await evaluate()
-        store.task.phase = 'idle'
-        store.task.message = store.capabilityReport.status === 'deny' ? '当前环境不支持导出。' : '能力检查完成。'
-        store.task.progress = 0.1
+    return maxDuration
+})
+
+const timelineTracks = computed(() => {
+    const total = timelineDurationSec.value || 1
+    return [
+        {
+            id: 'clip1' as const,
+            label: 'Clip1',
+            subtitle: store.clip1File?.name || '手元视频',
+            colorClass: 'from-primary/80 to-primary',
+            glowClass: 'shadow-primary/30',
+            startSec: store.alignResult?.clip1StartSec ?? 0,
+            durationSec: store.clip1Probe?.durationSec ?? 0,
+            gainDb: store.config.audio1GainDb,
+            muted: isTrackMuted('clip1'),
+            widthPercent: ((store.clip1Probe?.durationSec ?? 0) / total) * 100,
+            offsetPercent: ((store.alignResult?.clip1StartSec ?? 0) / total) * 100,
+        },
+        {
+            id: 'clip2' as const,
+            label: 'Clip2',
+            subtitle: store.clip2File?.name || '对齐音轨',
+            colorClass: 'from-secondary/80 to-secondary',
+            glowClass: 'shadow-secondary/30',
+            startSec: store.alignResult?.clip2StartSec ?? 0,
+            durationSec: store.clip2Probe?.durationSec ?? 0,
+            gainDb: store.config.audio2GainDb,
+            muted: isTrackMuted('clip2'),
+            widthPercent: ((store.clip2Probe?.durationSec ?? 0) / total) * 100,
+            offsetPercent: ((store.alignResult?.clip2StartSec ?? 0) / total) * 100,
+        },
+    ]
+})
+
+const previewCursorPercent = computed(() => {
+    if (timelineDurationSec.value <= 0) {
+        return 0
     }
-    catch (error) {
-        store.task.phase = 'failed'
-        store.task.error = error instanceof Error ? error.message : '能力检查失败'
-    }
-    finally {
-        runningCapabilityCheck.value = false
-    }
+
+    return (timelineCursorSec.value / timelineDurationSec.value) * 100
+})
+
+const currentPreviewOffsetSec = computed(() => {
+    const clipStart = store.alignResult?.clip1StartSec ?? 0
+    return Math.max(0, timelineCursorSec.value - clipStart)
+})
+
+function isTrackMuted(trackId: TrackId): boolean {
+    return trackControls[trackId].mute
 }
+
+function toggleMute(trackId: TrackId) {
+    trackControls[trackId].mute = !trackControls[trackId].mute
+}
+
+function resetAll() {
+    trackControls.clip1.mute = false
+    trackControls.clip2.mute = false
+    timelineCursorSec.value = 0
+
+    if (previewObjectUrl.value) {
+        URL.revokeObjectURL(previewObjectUrl.value)
+        previewObjectUrl.value = null
+    }
+
+    store.clip1File = null
+    store.clip2File = null
+    store.clip1Probe = null
+    store.clip2Probe = null
+    store.resetTask()
+}
+
+function formatSeconds(value: number): string {
+    if (!Number.isFinite(value)) {
+        return '0.00s'
+    }
+
+    return `${value.toFixed(2)}s`
+}
+
+function updateTimelineCursor(value: number) {
+    const clamped = Math.max(0, Math.min(value, timelineDurationSec.value))
+    timelineCursorSec.value = clamped
+}
+
+function syncPreviewVideoTime() {
+    if (!previewVideo.value || syncingPreviewVideo.value) {
+        return
+    }
+
+    syncingPreviewVideo.value = true
+    previewVideo.value.currentTime = Math.min(
+        Math.max(0, currentPreviewOffsetSec.value),
+        Math.max(0, (store.clip1Probe?.durationSec ?? 0) - 0.05),
+    )
+    window.requestAnimationFrame(() => {
+        syncingPreviewVideo.value = false
+    })
+}
+
+watch(currentPreviewOffsetSec, () => {
+    syncPreviewVideoTime()
+})
+
+watch(() => store.clip1File, (file, previousFile) => {
+    if (previewObjectUrl.value) {
+        URL.revokeObjectURL(previewObjectUrl.value)
+        previewObjectUrl.value = null
+    }
+
+    if (file) {
+        previewObjectUrl.value = URL.createObjectURL(file)
+    }
+
+    if (previousFile !== file) {
+        updateTimelineCursor(store.alignResult?.clip1StartSec ?? 0)
+    }
+})
+
+watch(() => store.alignResult, (result) => {
+    updateTimelineCursor(result?.clip1StartSec ?? 0)
+}, { deep: true })
+
+onBeforeUnmount(() => {
+    if (previewObjectUrl.value) {
+        URL.revokeObjectURL(previewObjectUrl.value)
+    }
+})
 
 async function assignFile(kind: 'clip1' | 'clip2', file: File | null) {
     if (!file) {
@@ -101,15 +241,8 @@ async function runAlign() {
     store.task.message = '对齐完成，等待导出。'
 }
 
-async function runExport(kind: 'preview' | 'final') {
+async function runExport() {
     if (!store.alignResult || !store.clip1File || !store.clip2File) {
-        return
-    }
-
-    const report = store.capabilityReport
-    if (!report || report.status === 'deny') {
-        store.task.phase = 'failed'
-        store.task.error = '当前环境不支持导出，请升级设备或浏览器。'
         return
     }
 
@@ -117,16 +250,15 @@ async function runExport(kind: 'preview' | 'final') {
         audio1GainDb: store.config.audio1GainDb,
         audio2GainDb: store.config.audio2GainDb,
         audioReverbWet: store.config.audioReverbWet,
-        muteClip1: muteClip1.value,
-        muteClip2: muteClip2.value,
-        previewDurationSec: kind === 'preview' ? store.config.previewDurationSec : undefined,
+        muteClip1: isTrackMuted('clip1'),
+        muteClip2: isTrackMuted('clip2'),
     })
 
     store.task.phase = 'exporting'
     store.task.progress = 0.6
     store.task.error = undefined
     store.task.outputSavedPath = undefined
-    store.task.message = kind === 'preview' ? '正在执行本地预览导出...' : '正在执行本地完整导出...'
+    store.task.message = '正在执行本地完整导出...'
 
     if (store.outputObjectUrl) {
         URL.revokeObjectURL(store.outputObjectUrl)
@@ -138,7 +270,6 @@ async function runExport(kind: 'preview' | 'final') {
             clip1File: store.clip1File,
             clip2File: store.clip2File,
             plan,
-            kind,
             onProgress: (progress, message) => {
                 store.task.progress = progress
                 store.task.message = message
@@ -185,7 +316,6 @@ async function runExport(kind: 'preview' | 'final') {
                 type: 'export-preview',
                 payload: {
                     plan,
-                    kind,
                     clip1: {
                         fileName: store.clip1File?.name || 'clip1.mp4',
                         mimeType: store.clip1File?.type || 'video/mp4',
@@ -226,129 +356,272 @@ async function runExport(kind: 'preview' | 'final') {
         store.task.progress = 1
         store.task.outputFileName = result.fileName
         store.task.outputSavedPath = delivered.savedPath
-        store.task.message = delivered.savedPath ? '导出完成，已写入设备并打开分享面板。' : '导出完成。'
+        store.task.message = delivered.savedPath ? '导出完成，已写入设备并打开分享面板。' : '导出完成，已开始下载。'
     }
     catch (error) {
         store.task.phase = 'failed'
         store.task.error = error instanceof Error ? error.message : '导出失败'
     }
 }
-
-onMounted(async () => {
-    await runCapabilityCheck()
-})
 </script>
 
 <template>
     <main class="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-8 md:px-6">
-        <section class="hero rounded-box bg-base-100 shadow-sm">
-            <div class="hero-content w-full justify-between max-md:flex-col">
-                <div>
-                    <h1 class="text-4xl font-bold">
+        <section class="overflow-hidden rounded-4xl border border-base-300 bg-linear-to-br from-base-100 via-base-100 to-base-200">
+            <div class="grid gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:px-8">
+                <div class="space-y-5">
+                    <h1 class="mt-4 text-4xl font-bold">
                         TemotoAlign
                     </h1>
-                    <p class="mt-2 max-w-2xl text-sm opacity-75">
-                        将 `maimai-timing-align` 的音频对齐与本地导出流程迁移到 Nuxt 客户端架构中。
-                        当前版本已完成能力门禁、素材输入、对齐代理和导出任务接线。
+                    <p class="mt-3 max-w-2xl text-sm leading-7 opacity-75">
+                        一键对齐手元视频与高质量音频，导出可直接使用的手元成品。
                     </p>
+
+                    <div class="flex flex-wrap gap-2">
+                        <button class="btn btn-primary" :disabled="!canStartAlign" @click="runAlign">
+                            <span v-if="isAligning" class="loading loading-spinner loading-sm" />
+                            {{ isAligning ? '对齐中...' : '开始对齐' }}
+                        </button>
+                        <button class="btn btn-secondary" :disabled="!store.alignResult || isAligning || isExporting" @click="runExport()">
+                            <span v-if="isExporting" class="loading loading-spinner loading-sm" />
+                            {{ isExporting ? '导出中...' : '导出视频' }}
+                        </button>
+                        <button v-if="store.alignResult" class="btn btn-outline" :disabled="isAligning || isExporting" @click="resetAll">
+                            重置
+                        </button>
+                    </div>
                 </div>
-                <button class="btn btn-outline" :disabled="runningCapabilityCheck" @click="runCapabilityCheck">
-                    重新检查环境
-                </button>
+
+                <div class="rounded-3xl border border-base-300 bg-base-100/80 p-5">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg font-semibold">
+                                任务状态
+                            </h2>
+                        </div>
+                        <div class="text-right text-xs opacity-60">
+                            <div>{{ Math.round(store.task.progress * 100) }}%</div>
+                        </div>
+                    </div>
+
+                    <div v-if="store.alignResult" class="mt-4 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
+                        <div class="rounded-2xl bg-base-200 p-3">
+                            <div class="opacity-60">
+                                Clip1 起点
+                            </div>
+                            <div class="mt-1 font-semibold">
+                                {{ store.alignResult.clip1StartSec.toFixed(3) }}s
+                            </div>
+                        </div>
+                        <div class="rounded-2xl bg-base-200 p-3">
+                            <div class="opacity-60">
+                                Clip2 起点
+                            </div>
+                            <div class="mt-1 font-semibold">
+                                {{ store.alignResult.clip2StartSec.toFixed(3) }}s
+                            </div>
+                        </div>
+                        <div class="rounded-2xl bg-base-200 p-3">
+                            <div class="opacity-60">
+                                偏移
+                            </div>
+                            <div class="mt-1 font-semibold">
+                                {{ store.alignResult.offsetSec.toFixed(3) }}s
+                            </div>
+                        </div>
+                        <div class="rounded-2xl bg-base-200 p-3">
+                            <div class="opacity-60">
+                                导出时长
+                            </div>
+                            <div class="mt-1 font-semibold">
+                                {{ store.alignResult.outputDurationSec.toFixed(3) }}s
+                            </div>
+                        </div>
+                    </div>
+
+                    <progress class="progress progress-primary mt-4 w-full" :value="store.task.progress" max="1" />
+                    <div class="mt-2 text-sm opacity-80">
+                        {{ store.task.message }}
+                    </div>
+
+                    <div v-if="store.task.error" class="alert alert-error mt-4">
+                        <span>{{ store.task.error }}</span>
+                    </div>
+                    <div v-else-if="store.task.outputSavedPath" class="mt-3 text-sm opacity-70">
+                        已保存：{{ store.task.outputSavedPath }}
+                    </div>
+                </div>
             </div>
         </section>
 
-        <div class="card-grid">
-            <CapabilityReportCard :report="store.capabilityReport" :pending="runningCapabilityCheck" />
-            <ExportTaskCard :result="store.alignResult" :task="store.task" />
-        </div>
-
-        <section class="card bg-base-100 shadow-sm">
-            <div class="card-body gap-6">
+        <section v-if="showInputPanel" class="rounded-4xl border border-base-300 bg-base-100 p-6">
+            <div class="space-y-6">
                 <div>
-                    <h2 class="card-title">
+                    <h2 class="text-xl font-semibold">
                         素材输入
                     </h2>
-                    <p class="text-sm opacity-70">
-                        `Clip1` 必须是视频，`Clip2` 可以是视频或音频。
-                    </p>
                 </div>
 
                 <div class="grid gap-4 md:grid-cols-2">
-                    <InputMediaFilePicker
+                    <MediaFilePicker
                         label="Clip1（手元视频）" accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
                         :file="store.clip1File" @update="assignFile('clip1', $event)"
                     />
-                    <InputMediaFilePicker
+                    <MediaFilePicker
                         label="Clip2（音频来源）"
                         accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*" :file="store.clip2File"
                         @update="assignFile('clip2', $event)"
                     />
                 </div>
-
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div class="rounded-box bg-base-200 p-4 text-sm">
-                        <div class="font-medium">
-                            Clip1 元数据
-                        </div>
-                        <div class="mt-2 opacity-75">
-                            {{ store.clip1Probe ? `${store.clip1Probe.durationSec.toFixed(3)}s /
-                            ${store.clip1Probe.width || '-'}x${store.clip1Probe.height || '-'}` : '未检测' }}
-                        </div>
-                    </div>
-                    <div class="rounded-box bg-base-200 p-4 text-sm">
-                        <div class="font-medium">
-                            Clip2 元数据
-                        </div>
-                        <div class="mt-2 opacity-75">
-                            {{ store.clip2Probe ? `${store.clip2Probe.durationSec.toFixed(3)}s /
-                            ${store.clip2Probe.mimeType}` : '未检测' }}
-                        </div>
-                    </div>
-                </div>
             </div>
         </section>
 
-        <ExportConfigPanel
-            v-model="store.config"
-            :disabled="store.capabilityReport?.status === 'deny'"
-        />
+        <section v-if="showTimelinePanel" class="rounded-4xl border border-base-300 bg-base-100 p-6">
+            <div class="space-y-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-semibold">
+                            可视化时间轴
+                        </h2>
+                        <p class="text-sm opacity-70">
+                            对齐完成后会按起始时间排布。拖动底部游标即可预览。
+                        </p>
+                    </div>
 
-        <section class="card bg-base-100 shadow-sm">
-            <div class="card-body gap-4">
-                <h2 class="card-title">
-                    导出控制
-                </h2>
-                <div class="flex flex-wrap gap-4">
-                    <label class="label cursor-pointer gap-2">
-                        <span class="label-text">静音 Clip1</span>
-                        <input v-model="muteClip1" class="toggle toggle-primary" type="checkbox">
-                    </label>
-                    <label class="label cursor-pointer gap-2">
-                        <span class="label-text">静音 Clip2</span>
-                        <input v-model="muteClip2" class="toggle toggle-primary" type="checkbox">
-                    </label>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="rounded-full border border-base-300 px-3 py-1">时间轴总长 {{ formatSeconds(timelineDurationSec) }}</span>
+                        <span class="rounded-full border border-base-300 px-3 py-1">预览位置 {{ formatSeconds(currentPreviewOffsetSec) }}</span>
+                    </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
-                    <button class="btn btn-primary" :disabled="!canStartAlign" @click="runAlign">
-                        开始对齐
-                    </button>
-                    <button class="btn btn-secondary" :disabled="!store.alignResult" @click="runExport('preview')">
-                        导出预览片段
-                    </button>
-                    <button class="btn btn-secondary" :disabled="!store.alignResult" @click="runExport('final')">
-                        导出完整视频
-                    </button>
-                    <a
-                        v-if="store.outputObjectUrl" class="btn btn-accent" :href="store.outputObjectUrl"
-                        :download="store.task.outputFileName || 'temotoalign-preview.mp4'"
-                    >
-                        下载当前导出结果
-                    </a>
-                    <span v-if="store.task.outputSavedPath" class="text-sm opacity-70">
-                        已保存：{{ store.task.outputSavedPath }}
-                    </span>
+                <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+                    <div class="rounded-3xl bg-base-200 p-4">
+                        <div class="mb-4 flex items-center justify-between text-xs opacity-60">
+                            <span>0s</span>
+                            <span>{{ formatSeconds(timelineDurationSec / 2) }}</span>
+                            <span>{{ formatSeconds(timelineDurationSec) }}</span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div
+                                v-for="track in timelineTracks"
+                                :key="track.id"
+                                class="flex gap-3 rounded-2xl bg-base-100/70 p-3"
+                            >
+                                <div class="relative flex min-h-24 items-center overflow-hidden rounded-2xl bg-base-300/40 px-3 flex-1">
+                                    <div class="absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-base-content/10" />
+                                    <div class="absolute inset-y-2 left-0 w-px bg-base-content/10" />
+                                    <div class="absolute inset-y-2 right-0 w-px bg-base-content/10" />
+                                    <div
+                                        class="absolute inset-y-3 rounded-xl bg-linear-to-r shadow-lg"
+                                        :class="[track.colorClass, track.glowClass, isTrackMuted(track.id) ? 'opacity-35' : 'opacity-95']"
+                                        :style="{
+                                            left: `${Math.min(track.offsetPercent, 100)}%`,
+                                            width: `${Math.max(Math.min(track.widthPercent, 100 - track.offsetPercent), 4)}%`,
+                                        }"
+                                    >
+                                        <div v-if="track.durationSec" class="flex h-full items-center justify-between px-4 text-[11px] font-medium text-primary-content">
+                                            <span>{{ formatSeconds(track.startSec) }}</span>
+                                            <span>{{ formatSeconds(track.durationSec) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="pointer-events-none absolute inset-y-1 w-0.5 bg-accent shadow-[0_0_0_1px_rgba(255,255,255,0.35)]"
+                                        :style="{ left: `${previewCursorPercent}%` }"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 rounded-2xl bg-base-100/80 p-4">
+                            <input
+                                :model-value="timelineCursorSec"
+                                class="range range-accent w-full"
+                                type="range"
+                                min="0"
+                                :max="timelineDurationSec"
+                                step="0.01"
+                                @input="updateTimelineCursor(Number(($event.target as HTMLInputElement).value))"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="rounded-3xl bg-base-200 p-4">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold">
+                                控制区
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="rounded-2xl bg-base-100/80 p-4">
+                                <div class="text-sm font-semibold">
+                                    Clip1
+                                </div>
+                                <div class="mt-1 text-xs opacity-60">
+                                    手元视频
+                                </div>
+                                <div class="mt-4 flex h-40 items-center justify-center">
+                                    <div class="relative flex h-36 w-16 items-center justify-center">
+                                        <input
+                                            v-model.number="store.config.audio1GainDb"
+                                            class="range range-primary absolute w-36 -rotate-90"
+                                            type="range"
+                                            min="-18"
+                                            max="6"
+                                            step="0.5"
+                                        >
+                                    </div>
+                                </div>
+                                <div class="text-center text-sm font-medium text-primary">
+                                    {{ store.config.audio1GainDb.toFixed(1) }} dB
+                                </div>
+                                <div class="mt-3 flex justify-center">
+                                    <button
+                                        class="btn btn-sm"
+                                        :class="isTrackMuted('clip1') ? 'btn-error' : 'btn-outline btn-primary'"
+                                        @click="toggleMute('clip1')"
+                                    >
+                                        {{ isTrackMuted('clip1') ? '取消静音' : '静音轨道' }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl bg-base-100/80 p-4">
+                                <div class="text-sm font-semibold">
+                                    Clip2
+                                </div>
+                                <div class="mt-1 text-xs opacity-60">
+                                    对齐音轨
+                                </div>
+                                <div class="mt-4 flex h-40 items-center justify-center">
+                                    <div class="relative flex h-36 w-16 items-center justify-center">
+                                        <input
+                                            v-model.number="store.config.audio2GainDb"
+                                            class="range range-secondary absolute w-36 -rotate-90"
+                                            type="range"
+                                            min="-18"
+                                            max="6"
+                                            step="0.5"
+                                        >
+                                    </div>
+                                </div>
+                                <div class="text-center text-sm font-medium text-secondary">
+                                    {{ store.config.audio2GainDb.toFixed(1) }} dB
+                                </div>
+                                <div class="mt-3 flex justify-center">
+                                    <button
+                                        class="btn btn-sm"
+                                        :class="isTrackMuted('clip2') ? 'btn-error' : 'btn-outline btn-secondary'"
+                                        @click="toggleMute('clip2')"
+                                    >
+                                        {{ isTrackMuted('clip2') ? '取消静音' : '静音轨道' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

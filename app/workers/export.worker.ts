@@ -409,9 +409,7 @@ globalThis.onmessage = async (event: MessageEvent<ExportWorkerRequest>) => {
         globalThis.postMessage({
             type: 'success',
             blob: new Blob([muxerTarget.buffer], { type: 'video/mp4' }),
-            fileName: message.payload.kind === 'preview'
-                ? `temotoalign-preview-${Date.now()}.mp4`
-                : `temotoalign-final-${Date.now()}.mp4`,
+            fileName: `temotoalign-final-${Date.now()}.mp4`,
         } satisfies ExportWorkerMessage)
     }
     catch (error) {

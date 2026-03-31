@@ -1,6 +1,5 @@
 export const useAlignTaskStore = defineStore('alignTask', () => {
     const config = ref<AlignConfig>({ ...defaultAlignConfig })
-    const capabilityReport = ref<ExportCapabilityReport | null>(null)
     const clip1File = ref<File | null>(null)
     const clip2File = ref<File | null>(null)
     const clip1Probe = ref<MediaProbeResult | null>(null)
@@ -13,7 +12,7 @@ export const useAlignTaskStore = defineStore('alignTask', () => {
         id: 'default',
         phase: 'idle',
         progress: 0,
-        message: '等待开始',
+        message: '等待上传素材并对齐',
     })
 
     function resetTask() {
@@ -29,14 +28,13 @@ export const useAlignTaskStore = defineStore('alignTask', () => {
             id: crypto.randomUUID(),
             phase: 'idle',
             progress: 0,
-            message: '等待开始',
+            message: '等待上传素材并对齐',
             outputSavedPath: undefined,
         }
     }
 
     return {
         config,
-        capabilityReport,
         clip1File,
         clip2File,
         clip1Probe,

@@ -1,6 +1,3 @@
-import type { PreparedAudioPayload } from '../../shared/types/alignment'
-import { audioBufferToMonoPcm16Wav, uint8ArrayToBase64 } from '../utils/audio'
-
 async function decodeAudioFile(file: File): Promise<AudioBuffer> {
     const audioContext = new AudioContext()
 

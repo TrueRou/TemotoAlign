@@ -1,5 +1,3 @@
-import type { MediaProbeResult } from '../../shared/types/alignment'
-
 export function useMediaProbe() {
     const probeFile = async (file: File): Promise<MediaProbeResult> => {
         const mimeType = file.type || 'application/octet-stream'

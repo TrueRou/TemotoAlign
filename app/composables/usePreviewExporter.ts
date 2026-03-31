@@ -1,10 +1,7 @@
-import type { ExportKind, ExportPlan, ExportWorkerAudioBuffer } from '../../shared/types/alignment'
-
 interface ExportAudioPreparationOptions {
     clip1File: File
     clip2File: File
     plan: ExportPlan
-    kind: ExportKind
     onProgress?: (progress: number, message: string) => void
 }
 
@@ -80,7 +77,7 @@ async function renderMixedAudio(options: ExportAudioPreparationOptions): Promise
 
 export function usePreviewExporter() {
     const prepareMixedAudio = async (options: ExportAudioPreparationOptions): Promise<ExportWorkerAudioBuffer> => {
-        options.onProgress?.(0.1, options.kind === 'preview' ? '正在渲染预览音频...' : '正在渲染完整音频...')
+        options.onProgress?.(0.1, '正在渲染完整音频...')
         const mixedAudio = await renderMixedAudio(options)
         return {
             sampleRate: mixedAudio.sampleRate,

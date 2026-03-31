@@ -1,6 +1,5 @@
 export type CapabilityStatus = 'allow' | 'limited' | 'deny'
 export type AlignTaskPhase = 'idle' | 'probing' | 'aligning' | 'ready' | 'exporting' | 'done' | 'failed'
-export type ExportKind = 'preview' | 'final'
 
 export interface AlignConfig {
     audioSr: number
@@ -14,7 +13,6 @@ export interface AlignConfig {
     audio2GainDb: number
     audioReverbWet: number
     outputAudioBitrateK: number
-    previewDurationSec: number
 }
 
 export interface AlignResult {
@@ -56,7 +54,6 @@ export interface ExportPlan {
     audio1GainDb: number
     audio2GainDb: number
     audioReverbWet: number
-    previewDurationSec?: number
 }
 
 export interface CapabilityIssue {
@@ -137,7 +134,6 @@ export interface ExportWorkerRequest {
         clip1: ExportWorkerSourceFile
         clip2?: ExportWorkerAuxSourceFile
         mixedAudio: ExportWorkerAudioBuffer
-        kind: ExportKind
     }
 }
 

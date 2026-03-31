@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Filesystem, Directory } from '@capacitor/filesystem'
+import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -25,7 +25,19 @@ export function useExportDelivery() {
     const deliver = async (blob: Blob, fileName: string): Promise<{ objectUrl?: string, savedPath?: string }> => {
         if (!Capacitor.isNativePlatform()) {
             const objectUrl = URL.createObjectURL(blob)
-            return { objectUrl }
+            const link = document.createElement('a')
+            link.href = objectUrl
+            link.download = fileName
+            link.style.display = 'none'
+            document.body.append(link)
+            link.click()
+            link.remove()
+
+            window.setTimeout(() => {
+                URL.revokeObjectURL(objectUrl)
+            }, 1000)
+
+            return {}
         }
 
         let base64 = await blobToBase64(blob)
