@@ -29,7 +29,9 @@ export const useAlignTaskStore = defineStore('alignTask', () => {
             phase: 'idle',
             progress: 0,
             message: '等待上传素材并对齐',
+            outputFileName: undefined,
             outputSavedPath: undefined,
+            error: undefined,
         }
     }
 

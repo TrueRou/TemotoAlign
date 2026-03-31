@@ -21,6 +21,13 @@ interface ParsedVideoTrack {
     description?: Uint8Array
 }
 
+function getVideoDecoderConfig(track: ParsedVideoTrack) {
+    return {
+        codec: track.codec,
+        description: track.description ?? new Uint8Array(),
+    }
+}
+
 function clearParsedTrackSamples(samples: ParsedTrackSample[] | null | undefined) {
     if (!samples) {
         return
@@ -206,6 +213,13 @@ async function parseVideoTrack(buffer: ArrayBuffer): Promise<ParsedVideoTrack> {
             if (sampleEntry?.avcC) {
                 description = buildAvcDescription(sampleEntry.avcC)
             }
+
+            if (!description) {
+                console.warn('Worker: 未从样本描述中提取到解码配置，将使用空描述兜底继续封装。', {
+                    codec: track.codec,
+                    trackId: track.id,
+                })
+            }
             else if (sampleEntry?.hvcC) {
                 description = buildHevcDescription(sampleEntry.hvcC)
             }
@@ -333,11 +347,10 @@ function muxVideoTrackDirect(
             sample.isRap ? 'key' : 'delta',
             Math.max(0, timestampUs),
             Math.max(1, durationUs),
-            index === 0 && track.description
+            index === 0
                 ? {
                         decoderConfig: {
-                            codec: track.codec,
-                            description: track.description,
+                            ...getVideoDecoderConfig(track),
                         },
                     }
                 : undefined,

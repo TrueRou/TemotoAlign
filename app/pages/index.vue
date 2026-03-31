@@ -22,6 +22,7 @@ const previewVideo = ref<HTMLVideoElement | null>(null)
 const previewObjectUrl = ref<string | null>(null)
 const timelineCursorSec = ref(0)
 const syncingPreviewVideo = ref(false)
+const supportsAudioEncoder = ref(true)
 
 const hasSelectedMedia = computed(() => Boolean(store.clip1File && store.clip2File))
 const hasStartedAlignFlow = computed(() => {
@@ -171,6 +172,10 @@ watch(() => store.clip1File, (file, previousFile) => {
 watch(() => store.alignResult, (result) => {
     updateTimelineCursor(result?.clip1StartSec ?? 0)
 }, { deep: true })
+
+onMounted(() => {
+    supportsAudioEncoder.value = typeof AudioEncoder !== 'undefined'
+})
 
 onBeforeUnmount(() => {
     if (previewObjectUrl.value) {
@@ -367,6 +372,15 @@ async function runExport() {
 
 <template>
     <main class="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-8 md:px-6">
+        <ClientOnly>
+            <div
+                v-if="!supportsAudioEncoder"
+                class="rounded-3xl border border-warning/40 bg-warning/12 px-4 py-3 text-sm text-warning-content shadow-sm"
+            >
+                当前浏览器缺少 `AudioEncoder` 支持，无法正常导出视频。请更换为较新的 Chrome、Edge 或其它兼容浏览器。
+            </div>
+        </ClientOnly>
+
         <section class="overflow-hidden rounded-4xl border border-base-300 bg-linear-to-br from-base-100 via-base-100 to-base-200">
             <div class="grid gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:px-8">
                 <div class="space-y-5">
@@ -454,7 +468,7 @@ async function runExport() {
             </div>
         </section>
 
-        <section v-if="showInputPanel" class="rounded-4xl border border-base-300 bg-base-100 p-6">
+        <section v-if="showInputPanel" class="rounded-4xl border border-base-300 bg-base-100 p-4 sm:p-6">
             <div class="space-y-6">
                 <div>
                     <h2 class="text-xl font-semibold">
@@ -462,16 +476,20 @@ async function runExport() {
                     </h2>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-2">
-                    <MediaFilePicker
-                        label="Clip1（手元视频）" accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
-                        :file="store.clip1File" @update="assignFile('clip1', $event)"
-                    />
-                    <MediaFilePicker
-                        label="Clip2（音频来源）"
-                        accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*" :file="store.clip2File"
-                        @update="assignFile('clip2', $event)"
-                    />
+                <div class="flex flex-col gap-4 md:flex-row">
+                    <div class="flex-1">
+                        <MediaFilePicker
+                            label="Clip1（手元视频）" accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
+                            :file="store.clip1File" @update="assignFile('clip1', $event)"
+                        />
+                    </div>
+                    <div class="flex-1">
+                        <MediaFilePicker
+                            label="Clip2（音频来源）"
+                            accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*" :file="store.clip2File"
+                            @update="assignFile('clip2', $event)"
+                        />
+                    </div>
                 </div>
             </div>
         </section>
