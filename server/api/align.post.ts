@@ -20,6 +20,9 @@ export default defineEventHandler(async (event): Promise<AlignResponsePayload> =
     formData.append('min_overlap_sec', String(body.config.audioMinOverlapSec))
     formData.append('confidence_floor', String(body.config.audioConfidenceFloor))
     formData.append('max_duration_sec', String(body.config.audioMaxDurationSec))
+    formData.append('prefer_tail', String(body.config.preferTail))
+    formData.append('segment_count', String(body.config.segmentCount))
+    formData.append('tail_bias_weight', String(body.config.tailBiasWeight))
     formData.append('audio_a', new Blob([base64ToArrayBuffer(body.clip1AudioBase64)], { type: 'audio/wav' }), `${body.clip1FileName}.wav`)
     formData.append('audio_b', new Blob([base64ToArrayBuffer(body.clip2AudioBase64)], { type: 'audio/wav' }), `${body.clip2FileName}.wav`)
 
@@ -49,6 +52,8 @@ export default defineEventHandler(async (event): Promise<AlignResponsePayload> =
         confidence: Number(data.confidence || 0),
         method: String(data.method || 'audio_remote'),
         warnings: Array.isArray(data.warnings) ? data.warnings.map(item => String(item)) : [],
+        segmentIndex: data.segment_index != null ? Number(data.segment_index) : undefined,
+        segmentCountUsed: data.segment_count_used != null ? Number(data.segment_count_used) : undefined,
     }
 
     return {
