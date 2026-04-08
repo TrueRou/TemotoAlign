@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ExportWorker from '../workers/export.worker?worker'
+import WebCodecsExportWorker from '../workers/webcodecs-export.worker?worker'
 
 const store = useAlignTaskStore()
 const { probeFile } = useMediaProbe()
@@ -23,6 +24,11 @@ const previewObjectUrl = ref<string | null>(null)
 const timelineCursorSec = ref(0)
 const syncingPreviewVideo = ref(false)
 const supportsAudioEncoder = ref(true)
+const showExportSettings = ref(false)
+
+const exportMethodLabel = computed(() => {
+    return store.exportMethod === 'remux' ? '速度优先（直通封装）' : '兼容模式（WebCodecs 转码）'
+})
 
 const hasSelectedMedia = computed(() => Boolean(store.clip1File && store.clip2File))
 const hasStartedAlignFlow = computed(() => {
@@ -218,32 +224,38 @@ async function runAlign() {
         return
     }
 
-    alignConfigSchema.parse(store.config)
-    store.task.phase = 'aligning'
-    store.task.progress = 0.2
-    store.task.error = undefined
-    store.task.message = '正在提取音轨并请求对齐...'
+    try {
+        alignConfigSchema.parse(store.config)
+        store.task.phase = 'aligning'
+        store.task.progress = 0.2
+        store.task.error = undefined
+        store.task.message = '正在提取音轨并请求对齐...'
 
-    const [clip1Audio, clip2Audio] = await Promise.all([
-        prepareForAlignment(store.clip1File, store.config.audioSr),
-        prepareForAlignment(store.clip2File, store.config.audioSr),
-    ])
+        const [clip1Audio, clip2Audio] = await Promise.all([
+            prepareForAlignment(store.clip1File, store.config.audioSr),
+            prepareForAlignment(store.clip2File, store.config.audioSr),
+        ])
 
-    store.clip1PreparedAudio = clip1Audio
-    store.clip2PreparedAudio = clip2Audio
+        store.clip1PreparedAudio = clip1Audio
+        store.clip2PreparedAudio = clip2Audio
 
-    const response = await align({
-        config: store.config,
-        clip1FileName: store.clip1File.name,
-        clip2FileName: store.clip2File.name,
-        clip1AudioBase64: clip1Audio.base64,
-        clip2AudioBase64: clip2Audio.base64,
-    })
+        const response = await align({
+            config: store.config,
+            clip1FileName: store.clip1File.name,
+            clip2FileName: store.clip2File.name,
+            clip1AudioBase64: clip1Audio.base64,
+            clip2AudioBase64: clip2Audio.base64,
+        })
 
-    store.alignResult = response.result
-    store.task.phase = 'ready'
-    store.task.progress = 0.5
-    store.task.message = '对齐完成，等待导出。'
+        store.alignResult = response.result
+        store.task.phase = 'ready'
+        store.task.progress = 0.5
+        store.task.message = '对齐完成，等待导出。'
+    }
+    catch (error) {
+        store.task.phase = 'idle'
+        store.task.error = error instanceof Error ? error.message : '对齐失败'
+    }
 }
 
 async function runExport() {
@@ -286,7 +298,9 @@ async function runExport() {
             clip1Buffer,
             ...mixedAudio.channels,
         ]
-        const worker = new ExportWorker()
+        const worker = store.exportMethod === 'webcodecs'
+            ? new WebCodecsExportWorker()
+            : new ExportWorker()
 
         const result = await new Promise<{ blob: Blob, fileName: string }>((resolve, reject) => {
             const cleanupWorker = () => {
@@ -403,6 +417,62 @@ async function runExport() {
                         <button v-if="store.alignResult" class="btn btn-outline" :disabled="isAligning || isExporting" @click="resetAll">
                             重置
                         </button>
+                    </div>
+
+                    <div class="rounded-2xl border border-base-300 bg-base-200/50">
+                        <button
+                            class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
+                            @click="showExportSettings = !showExportSettings"
+                        >
+                            <span>导出设置 · {{ exportMethodLabel }}</span>
+                            <svg
+                                class="h-4 w-4 transition-transform" :class="{ 'rotate-180': showExportSettings }"
+                                viewBox="0 0 20 20" fill="currentColor"
+                            >
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div v-if="showExportSettings" class="border-t border-base-300 px-4 py-4">
+                            <fieldset class="space-y-2">
+                                <legend class="mb-2 text-xs font-semibold opacity-70">
+                                    导出模式
+                                </legend>
+                                <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
+                                    <input
+                                        v-model="store.exportMethod"
+                                        type="radio"
+                                        name="exportMethod"
+                                        value="remux"
+                                        class="radio radio-primary mt-0.5"
+                                    >
+                                    <div>
+                                        <div class="text-sm font-medium">
+                                            速度优先（直通封装）
+                                        </div>
+                                        <div class="text-xs opacity-60">
+                                            直接复制源视频编码数据，速度快但依赖源文件编码兼容性。
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
+                                    <input
+                                        v-model="store.exportMethod"
+                                        type="radio"
+                                        name="exportMethod"
+                                        value="webcodecs"
+                                        class="radio radio-secondary mt-0.5"
+                                    >
+                                    <div>
+                                        <div class="text-sm font-medium">
+                                            兼容模式（WebCodecs 转码）
+                                        </div>
+                                        <div class="text-xs opacity-60">
+                                            使用 WebCodecs 重新编码视频为 H.264，兼容性更好但速度较慢。
+                                        </div>
+                                    </div>
+                                </label>
+                            </fieldset>
+                        </div>
                     </div>
                 </div>
 

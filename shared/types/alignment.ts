@@ -1,5 +1,6 @@
 export type CapabilityStatus = 'allow' | 'limited' | 'deny'
 export type AlignTaskPhase = 'idle' | 'probing' | 'aligning' | 'ready' | 'exporting' | 'done' | 'failed'
+export type ExportMethod = 'remux' | 'webcodecs'
 
 export interface AlignConfig {
     audioSr: number

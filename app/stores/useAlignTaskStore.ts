@@ -7,6 +7,7 @@ export const useAlignTaskStore = defineStore('alignTask', () => {
     const clip1PreparedAudio = ref<PreparedAudioPayload | null>(null)
     const clip2PreparedAudio = ref<PreparedAudioPayload | null>(null)
     const alignResult = ref<AlignResult | null>(null)
+    const exportMethod = ref<ExportMethod>('remux')
     const outputObjectUrl = ref<string | null>(null)
     const task = ref<ExportTaskState>({
         id: 'default',
@@ -44,6 +45,7 @@ export const useAlignTaskStore = defineStore('alignTask', () => {
         clip1PreparedAudio,
         clip2PreparedAudio,
         alignResult,
+        exportMethod,
         outputObjectUrl,
         task,
         resetTask,

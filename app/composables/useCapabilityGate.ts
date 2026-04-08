@@ -68,6 +68,8 @@ export function useCapabilityGate() {
             issues.push({ code: 'android-webview-too-old', message: 'Android System WebView 版本过旧。', fatal: true })
         }
 
+        const videoEncodingSupported = typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined'
+
         const codecs: CodecSupport[] = [
             { codec: 'video-remux', supported: mp4InputSupported, reason: mp4InputSupported ? undefined : '当前环境无法处理 MP4 输入。' },
             { codec: 'audio-aac', supported: true },
@@ -84,7 +86,7 @@ export function useCapabilityGate() {
             supportsFilesystemSave: filesystemSupported,
             supportsWorker: workerSupported,
             supportsOfflineAudio: offlineAudioSupported,
-            supportsVideoEncoding: false,
+            supportsVideoEncoding: videoEncodingSupported,
         }
     }
 
