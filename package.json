@@ -27,6 +27,7 @@
         "@capacitor/share": "^7.0.2",
         "@pinia/nuxt": "0.11.2",
         "@tailwindcss/vite": "^4.1.17",
+        "mediabunny": "^1.40.1",
         "mp4-muxer": "^5.2.2",
         "mp4box": "^2.1.2",
         "nuxt": "^4.2.1",
