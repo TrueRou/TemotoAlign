@@ -175,7 +175,6 @@ async function runAlign() {
         store.task.error = undefined
         store.task.message = '正在提取音轨并请求对齐...'
 
-    try {
         const [clip1Audio, clip2Audio] = await Promise.all([
             prepareForAlignment(store.clip1File, store.config.audioSr),
             prepareForAlignment(store.clip2File, store.config.audioSr),
@@ -314,7 +313,9 @@ async function runExport() {
         toast.show('导出完成', 'success')
     }
     catch (error) {
-        store.task.phase = 'failed'
+        store.task.phase = 'ready'
+        store.task.progress = 0.5
+        store.task.message = '导出失败，可重试。'
         store.task.error = error instanceof Error ? error.message : '导出失败'
         toast.show(store.task.error ?? '导出失败', 'error')
     }
@@ -346,7 +347,6 @@ async function runExport() {
                         <p class="mt-3 max-w-2xl text-sm leading-7 opacity-75">
                             一键对齐手元视频与高质量音频，导出可直接使用的手元成品。
                         </p>
-
                         <div class="flex flex-wrap gap-2">
                             <button class="btn btn-primary" :disabled="!canStartAlign" @click="runAlign">
                                 <span v-if="isAligning" class="loading loading-spinner loading-sm" />
@@ -361,61 +361,61 @@ async function runExport() {
                             </button>
                         </div>
 
-                    <div class="rounded-2xl border border-base-300 bg-base-200/50">
-                        <button
-                            class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
-                            @click="showExportSettings = !showExportSettings"
-                        >
-                            <span>导出设置 · {{ exportMethodLabel }}</span>
-                            <svg
-                                class="h-4 w-4 transition-transform" :class="{ 'rotate-180': showExportSettings }"
-                                viewBox="0 0 20 20" fill="currentColor"
+                        <div class="rounded-2xl border border-base-300 bg-base-200/50">
+                            <button
+                                class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
+                                @click="showExportSettings = !showExportSettings"
                             >
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <div v-if="showExportSettings" class="border-t border-base-300 px-4 py-4">
-                            <fieldset class="space-y-2">
-                                <legend class="mb-2 text-xs font-semibold opacity-70">
-                                    导出模式
-                                </legend>
-                                <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
-                                    <input
-                                        v-model="store.exportMethod"
-                                        type="radio"
-                                        name="exportMethod"
-                                        value="remux"
-                                        class="radio radio-primary mt-0.5"
-                                    >
-                                    <div>
-                                        <div class="text-sm font-medium">
-                                            速度优先（直通封装）
+                                <span>导出设置 · {{ exportMethodLabel }}</span>
+                                <svg
+                                    class="h-4 w-4 transition-transform" :class="{ 'rotate-180': showExportSettings }"
+                                    viewBox="0 0 20 20" fill="currentColor"
+                                >
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div v-if="showExportSettings" class="border-t border-base-300 px-4 py-4">
+                                <fieldset class="space-y-2">
+                                    <legend class="mb-2 text-xs font-semibold opacity-70">
+                                        导出模式
+                                    </legend>
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
+                                        <input
+                                            v-model="store.exportMethod"
+                                            type="radio"
+                                            name="exportMethod"
+                                            value="remux"
+                                            class="radio radio-primary mt-0.5"
+                                        >
+                                        <div>
+                                            <div class="text-sm font-medium">
+                                                速度优先（直通封装）
+                                            </div>
+                                            <div class="text-xs opacity-60">
+                                                直接复制源视频编码数据，速度快但依赖源文件编码兼容性。
+                                            </div>
                                         </div>
-                                        <div class="text-xs opacity-60">
-                                            直接复制源视频编码数据，速度快但依赖源文件编码兼容性。
+                                    </label>
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
+                                        <input
+                                            v-model="store.exportMethod"
+                                            type="radio"
+                                            name="exportMethod"
+                                            value="webcodecs"
+                                            class="radio radio-secondary mt-0.5"
+                                        >
+                                        <div>
+                                            <div class="text-sm font-medium">
+                                                兼容模式（WebCodecs 转码）
+                                            </div>
+                                            <div class="text-xs opacity-60">
+                                                使用 WebCodecs 重新编码视频为 H.264，兼容性更好但速度较慢。
+                                            </div>
                                         </div>
-                                    </div>
-                                </label>
-                                <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
-                                    <input
-                                        v-model="store.exportMethod"
-                                        type="radio"
-                                        name="exportMethod"
-                                        value="webcodecs"
-                                        class="radio radio-secondary mt-0.5"
-                                    >
-                                    <div>
-                                        <div class="text-sm font-medium">
-                                            兼容模式（WebCodecs 转码）
-                                        </div>
-                                        <div class="text-xs opacity-60">
-                                            使用 WebCodecs 重新编码视频为 H.264，兼容性更好但速度较慢。
-                                        </div>
-                                    </div>
-                                </label>
-                            </fieldset>
+                                    </label>
+                                </fieldset>
+                            </div>
                         </div>
-                    </div>
                     </div>
 
                     <AlignStatusPanel :result="store.alignResult" :task="store.task" />
