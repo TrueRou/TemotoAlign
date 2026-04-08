@@ -7,7 +7,6 @@ function base64ToArrayBuffer(data: string): ArrayBuffer {
 export default defineEventHandler(async (event): Promise<AlignResponsePayload> => {
     const body = await readBody<AlignRequestPayload>(event)
     const config = useRuntimeConfig(event)
-
     if (!body?.clip1AudioBase64 || !body?.clip2AudioBase64) {
         throw createError({ statusCode: 400, statusMessage: '缺少音频输入数据' })
     }
@@ -23,35 +22,43 @@ export default defineEventHandler(async (event): Promise<AlignResponsePayload> =
     formData.append('audio_a', new Blob([base64ToArrayBuffer(body.clip1AudioBase64)], { type: 'audio/wav' }), `${body.clip1FileName}.wav`)
     formData.append('audio_b', new Blob([base64ToArrayBuffer(body.clip2AudioBase64)], { type: 'audio/wav' }), `${body.clip2FileName}.wav`)
 
-    const payload = await $fetch<Record<string, any>>(`${config.otoge.baseURL.replace(/\/$/, '')}/audalign/audalign/align`, {
-        method: 'POST',
-        headers: config.otoge.developerToken
-            ? { 'x-developer-token': config.otoge.developerToken }
-            : undefined,
-        body: formData,
-    })
+    try {
+        const payload = await $fetch<Record<string, any>>(`${config.otoge.baseURL.replace(/\/$/, '')}/audalign/audalign/align`, {
+            method: 'POST',
+            headers: config.otoge.developerToken
+                ? { 'x-developer-token': config.otoge.developerToken }
+                : undefined,
+            body: formData,
+        })
+        if (Number(payload.code) !== 200 || !payload.data) {
+            throw createError({
+                statusCode: 502,
+                statusMessage: `对齐服务返回异常: ${payload.message || 'unknown error'}`,
+            })
+        }
 
-    if (Number(payload.code) !== 200 || !payload.data) {
+        const data = payload.data as Record<string, any>
+        const result: AlignResult = {
+            clip1AnchorSec: Number(data.anchor_a_sec || 0),
+            clip2AnchorSec: Number(data.anchor_b_sec || 0),
+            offsetSec: Number(data.offset_sec || 0),
+            clip1StartSec: Number(data.start_a_sec || 0),
+            clip2StartSec: Number(data.start_b_sec || 0),
+            outputDurationSec: Number(data.overlap_duration_sec || 0),
+            confidence: Number(data.confidence || 0),
+            method: String(data.method || 'audio_remote'),
+            warnings: Array.isArray(data.warnings) ? data.warnings.map(item => String(item)) : [],
+        }
+
+        return {
+            result,
+        }
+    }
+    catch (error) {
+        console.error(error)
         throw createError({
             statusCode: 502,
-            statusMessage: `对齐服务返回异常: ${payload.message || 'unknown error'}`,
+            message: `对齐服务返回异常`,
         })
-    }
-
-    const data = payload.data as Record<string, any>
-    const result: AlignResult = {
-        clip1AnchorSec: Number(data.anchor_a_sec || 0),
-        clip2AnchorSec: Number(data.anchor_b_sec || 0),
-        offsetSec: Number(data.offset_sec || 0),
-        clip1StartSec: Number(data.start_a_sec || 0),
-        clip2StartSec: Number(data.start_b_sec || 0),
-        outputDurationSec: Number(data.overlap_duration_sec || 0),
-        confidence: Number(data.confidence || 0),
-        method: String(data.method || 'audio_remote'),
-        warnings: Array.isArray(data.warnings) ? data.warnings.map(item => String(item)) : [],
-    }
-
-    return {
-        result,
     }
 })
