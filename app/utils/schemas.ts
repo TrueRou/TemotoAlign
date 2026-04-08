@@ -12,6 +12,9 @@ export const alignConfigSchema = z.object({
     audio2GainDb: z.number().min(-18).max(6),
     audioReverbWet: z.number().min(0).max(0.6),
     outputAudioBitrateK: z.number().int().min(96).max(320),
+    preferTail: z.boolean(),
+    segmentCount: z.number().int().min(1).max(10),
+    tailBiasWeight: z.number().min(0).max(0.5),
 })
 
 export const mediaInputSchema = z.object({

@@ -10,4 +10,7 @@ export const defaultAlignConfig: AlignConfig = {
     audio2GainDb: -6,
     audioReverbWet: 0.12,
     outputAudioBitrateK: 128,
+    preferTail: true,
+    segmentCount: 3,
+    tailBiasWeight: 0.15,
 }

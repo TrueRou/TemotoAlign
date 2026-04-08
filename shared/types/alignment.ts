@@ -14,6 +14,9 @@ export interface AlignConfig {
     audio2GainDb: number
     audioReverbWet: number
     outputAudioBitrateK: number
+    preferTail: boolean
+    segmentCount: number
+    tailBiasWeight: number
 }
 
 export interface AlignResult {
@@ -26,6 +29,8 @@ export interface AlignResult {
     confidence: number
     method: string
     warnings: string[]
+    segmentIndex?: number
+    segmentCountUsed?: number
 }
 
 export interface MediaProbeResult {
