@@ -49,8 +49,8 @@ const isVideo = computed(() => {
 
 <template>
     <div
-        class="h-full cursor-pointer rounded-lg bg-white p-4 transition-colors duration-200"
-        :class="isDragging ? 'bg-[#0071e3]/5' : 'hover:bg-white/80'"
+        class="h-full cursor-pointer rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur-xl backdrop-saturate-150 transition-colors duration-200"
+        :class="isDragging ? 'bg-white/20' : 'hover:bg-white/15'"
         @dragenter.prevent="isDragging = true"
         @dragover.prevent
         @dragleave.prevent="isDragging = false"
@@ -58,14 +58,14 @@ const isVideo = computed(() => {
     >
         <div class="flex flex-row items-start justify-between">
             <div class="min-w-0">
-                <div class="apple-caption font-semibold text-[#1d1d1f]">
+                <div class="apple-caption font-semibold text-white">
                     {{ props.label }}
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <button
                     v-if="props.file"
-                    class="flex items-center justify-center text-black/48 transition-colors hover:text-[#1d1d1f]"
+                    class="flex items-center justify-center text-white/50 transition-colors hover:text-white"
                     aria-label="清除文件"
                     @click.stop="clearFile"
                 >
@@ -73,7 +73,7 @@ const isVideo = computed(() => {
                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
-                <div class="rounded-full bg-[#f5f5f7] px-3 py-1 apple-micro text-black/60">
+                <div class="rounded-full bg-white/10 px-3 py-1 apple-micro text-white/60">
                     浏览文件
                 </div>
             </div>
@@ -81,7 +81,7 @@ const isVideo = computed(() => {
 
         <div
             class="relative mt-4 rounded-lg p-4 transition-colors duration-200 sm:p-5"
-            :class="isDragging ? 'bg-[#0071e3]/5' : 'bg-[#f5f5f7]'"
+            :class="isDragging ? 'bg-[#0071e3]/10' : 'bg-white/5'"
         >
             <input class="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" type="file" :accept="props.accept" @change="onChange">
 
@@ -99,21 +99,21 @@ const isVideo = computed(() => {
                     <div v-if="isDragging" class="apple-caption font-medium text-[#0071e3]">
                         松开以选择文件
                     </div>
-                    <div v-else-if="props.file" class="break-all apple-caption font-medium text-[#1d1d1f] sm:truncate">
+                    <div v-else-if="props.file" class="break-all apple-caption font-medium text-white sm:truncate">
                         {{ props.file.name }}
                     </div>
-                    <div v-else class="apple-caption text-black/48">
+                    <div v-else class="apple-caption text-white/50">
                         点击或拖拽文件到此处
                     </div>
 
-                    <div v-if="!isDragging" class="mt-1 apple-micro text-black/48 wrap-break-word">
+                    <div v-if="!isDragging" class="mt-1 apple-micro text-white/50 wrap-break-word">
                         {{ props.file ? formatFileSize(props.file.size) : props.accept }}
                     </div>
 
                     <div v-if="props.probe && props.file && !isDragging" class="mt-2 flex flex-wrap gap-1.5">
-                        <span class="rounded-full bg-[#e8e8ed] px-2 py-0.5 apple-micro">{{ formatDuration(props.probe.durationSec) }}</span>
-                        <span v-if="props.probe.width && props.probe.height" class="rounded-full bg-[#e8e8ed] px-2 py-0.5 apple-micro">{{ props.probe.width }}x{{ props.probe.height }}</span>
-                        <span class="rounded-full bg-[#e8e8ed] px-2 py-0.5 apple-micro">{{ formatFileSize(props.probe.fileSize) }}</span>
+                        <span class="rounded-full bg-white/10 px-2 py-0.5 apple-micro text-white/70">{{ formatDuration(props.probe.durationSec) }}</span>
+                        <span v-if="props.probe.width && props.probe.height" class="rounded-full bg-white/10 px-2 py-0.5 apple-micro text-white/70">{{ props.probe.width }}x{{ props.probe.height }}</span>
+                        <span class="rounded-full bg-white/10 px-2 py-0.5 apple-micro text-white/70">{{ formatFileSize(props.probe.fileSize) }}</span>
                     </div>
                 </div>
             </div>

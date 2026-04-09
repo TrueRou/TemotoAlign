@@ -3,7 +3,7 @@ const repoUrl = 'https://github.com/TrueRou/TemotoAlign'
 </script>
 
 <template>
-    <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-[20px] backdrop-saturate-180">
+    <header class="sticky top-0 z-40 border-b border-white/10 bg-white/10 backdrop-blur-xl backdrop-saturate-150">
         <div class="mx-auto flex h-12 max-w-245 items-center justify-between px-4 md:px-6">
             <div class="flex items-center gap-3">
                 <span class="apple-micro font-semibold text-white">TemotoAlign</span>

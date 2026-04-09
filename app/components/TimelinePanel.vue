@@ -63,7 +63,7 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
 </script>
 
 <template>
-    <section class="section-dark rounded-lg p-6">
+    <section class="rounded-xl border border-white/10 bg-white/10 p-6 backdrop-blur-xl backdrop-saturate-150">
         <div class="space-y-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>

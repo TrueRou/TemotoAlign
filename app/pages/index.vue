@@ -317,186 +317,189 @@ async function runExport() {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-[#f5f5f7]">
-        <AppHeader />
+    <div class="relative flex min-h-screen flex-col bg-cover bg-center bg-fixed" style="background-image: url('https://cdn.assets.turou.fun/static/atri_bg.webp')">
+        <div class="pointer-events-none absolute inset-0 bg-black/60" />
+        <div class="relative z-10 flex min-h-screen flex-col text-white">
+            <AppHeader />
 
-        <!-- Hero Section (Dark) -->
-        <section class="section-dark py-20">
-            <div class="mx-auto max-w-245 px-4 md:px-6">
-                <WorkflowStepper :current-step="currentStep" class="mb-12" />
+            <!-- Hero Section (Dark) -->
+            <section class="py-20">
+                <div class="mx-auto max-w-245 px-4 md:px-6">
+                    <WorkflowStepper :current-step="currentStep" class="mb-12" />
 
-                <ClientOnly>
-                    <div
-                        v-if="!supportsAudioEncoder"
-                        class="mb-8 rounded-lg bg-[#ff9f0a]/10 px-4 py-3 apple-caption text-[#ff9f0a]"
-                    >
-                        当前浏览器缺少 AudioEncoder 支持，无法正常导出视频。请更换为较新的 Chrome、Edge 或其它兼容浏览器。
-                    </div>
-                </ClientOnly>
-
-                <div class="text-center">
-                    <h1 class="apple-display-hero text-white">
-                        TemotoAlign
-                    </h1>
-                    <p class="mx-auto mt-4 max-w-xl text-[21px] font-normal leading-[1.19] tracking-[0.231px] text-white/80">
-                        一键对齐手元视频与高质量音频，导出可直接使用的手元成品。
-                    </p>
-
-                    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-                        <button
-                            class="btn bg-[#0071e3] text-white border-transparent hover:bg-[#0077ed]"
-                            :disabled="!canStartAlign"
-                            @click="runAlign"
+                    <ClientOnly>
+                        <div
+                            v-if="!supportsAudioEncoder"
+                            class="mb-8 rounded-lg bg-[#ff9f0a]/10 px-4 py-3 apple-caption text-[#ff9f0a]"
                         >
-                            <span v-if="isAligning" class="loading loading-spinner loading-sm" />
-                            {{ isAligning ? '对齐中...' : '开始对齐' }}
-                        </button>
-                        <button
-                            class="btn bg-[#1d1d1f] text-white border-transparent hover:bg-[#333336]"
-                            :disabled="!store.alignResult || isAligning || isExporting"
-                            @click="runExport()"
-                        >
-                            <span v-if="isExporting" class="loading loading-spinner loading-sm" />
-                            {{ isExporting ? '导出中...' : '导出视频' }}
-                        </button>
-                        <button
-                            v-if="store.alignResult"
-                            class="rounded-[980px] border border-white/30 px-4 py-2 apple-caption text-white transition-colors hover:bg-white/10"
-                            :disabled="isAligning || isExporting"
-                            @click="resetAll"
-                        >
-                            重置
-                        </button>
-                    </div>
-                    <!-- Export settings -->
-                    <div class="mx-auto mt-6 flex max-w-md items-center justify-center gap-3">
-                        <span class="apple-caption text-white/60">封装方式</span>
-                        <select
-                            v-model="store.exportMethod"
-                            class="rounded-lg border border-white/10 bg-[#272729] px-3 py-2 apple-caption text-white/80 outline-none transition-colors hover:bg-[#333336]"
-                        >
-                            <option value="remux">
-                                速度优先（直通封装）
-                            </option>
-                            <option value="webcodecs">
-                                兼容模式（WebCodecs 转码）
-                            </option>
-                        </select>
-                    </div>
+                            当前浏览器缺少 AudioEncoder 支持，无法正常导出视频。请更换为较新的 Chrome、Edge 或其它兼容浏览器。
+                        </div>
+                    </ClientOnly>
 
-                    <!-- Status panel -->
-                    <div class="mx-auto mt-8 max-w-2xl">
-                        <AlignStatusPanel :result="store.alignResult" :task="store.task" />
+                    <div class="text-center">
+                        <h1 class="apple-display-hero text-white">
+                            TemotoAlign
+                        </h1>
+                        <p class="mx-auto mt-4 max-w-xl text-[21px] font-normal leading-[1.19] tracking-[0.231px] text-white/80">
+                            一键对齐手元视频与高质量音频，导出可直接使用的手元成品。
+                        </p>
+
+                        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+                            <button
+                                class="btn bg-[#0071e3] text-white border-transparent hover:bg-[#0077ed]"
+                                :disabled="!canStartAlign"
+                                @click="runAlign"
+                            >
+                                <span v-if="isAligning" class="loading loading-spinner loading-sm" />
+                                {{ isAligning ? '对齐中...' : '开始对齐' }}
+                            </button>
+                            <button
+                                class="btn bg-white/10 text-white border-white/10 backdrop-blur-xl hover:bg-white/15"
+                                :disabled="!store.alignResult || isAligning || isExporting"
+                                @click="runExport()"
+                            >
+                                <span v-if="isExporting" class="loading loading-spinner loading-sm" />
+                                {{ isExporting ? '导出中...' : '导出视频' }}
+                            </button>
+                            <button
+                                v-if="store.alignResult"
+                                class="rounded-[980px] border border-white/30 px-4 py-2 apple-caption text-white transition-colors hover:bg-white/10"
+                                :disabled="isAligning || isExporting"
+                                @click="resetAll"
+                            >
+                                重置
+                            </button>
+                        </div>
+                        <!-- Export settings -->
+                        <div class="mx-auto mt-6 flex max-w-md items-center justify-center gap-3">
+                            <span class="apple-caption text-white/60">封装方式</span>
+                            <select
+                                v-model="store.exportMethod"
+                                class="rounded-lg border border-white/10 bg-white/10 px-3 py-2 apple-caption text-white/80 outline-none backdrop-blur-xl transition-colors hover:bg-white/15"
+                            >
+                                <option value="remux">
+                                    速度优先（直通封装）
+                                </option>
+                                <option value="webcodecs">
+                                    兼容模式（WebCodecs 转码）
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Status panel -->
+                        <div class="mx-auto mt-8 max-w-2xl">
+                            <AlignStatusPanel :result="store.alignResult" :task="store.task" />
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
-        <!-- Input Section (Light) -->
-        <Transition name="fade-slide">
-            <section v-if="showInputPanel" class="section-light py-16">
+            </section>
+            <!-- Input Section (Light) -->
+            <Transition name="fade-slide">
+                <section v-if="showInputPanel" class="py-16">
+                    <div class="mx-auto max-w-245 px-4 md:px-6">
+                        <h2 class="apple-section-heading text-center text-white">
+                            素材输入
+                        </h2>
+                        <div class="mt-10 flex flex-col items-stretch gap-4 md:flex-row">
+                            <div class="flex-1">
+                                <MediaFilePicker
+                                    label="Clip1（手元视频）"
+                                    accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
+                                    :file="store.clip1File"
+                                    :probe="store.clip1Probe"
+                                    @update="assignFile('clip1', $event)"
+                                />
+                            </div>
+                            <div class="flex-1">
+                                <MediaFilePicker
+                                    label="Clip2（音频来源）"
+                                    accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*"
+                                    :file="store.clip2File"
+                                    :probe="store.clip2Probe"
+                                    @update="assignFile('clip2', $event)"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </Transition>
+
+            <!-- Timeline Section (Dark) -->
+            <Transition name="fade-slide">
+                <section v-if="showTimelinePanel" class="py-16">
+                    <div class="mx-auto max-w-245 px-4 md:px-6">
+                        <TimelinePanel
+                            :tracks="timelineTracks"
+                            :duration-sec="timelineDurationSec"
+                            :cursor-sec="timelineCursorSec"
+                            :cursor-percent="previewCursorPercent"
+                            :preview-offset-sec="currentPreviewOffsetSec"
+                            :preview-object-url="previewObjectUrl"
+                            :config="store.config"
+                            @update:cursor-sec="updateTimelineCursor"
+                            @update:audio1-gain-db="store.config.audio1GainDb = $event"
+                            @update:audio2-gain-db="store.config.audio2GainDb = $event"
+                            @toggle-mute="toggleMute"
+                        />
+                    </div>
+                </section>
+            </Transition>
+
+            <!-- Related Projects Section (Light) -->
+            <section class="py-16">
                 <div class="mx-auto max-w-245 px-4 md:px-6">
-                    <h2 class="apple-section-heading text-center text-[#1d1d1f]">
-                        素材输入
+                    <h2 class="apple-section-heading text-center text-white">
+                        更多项目
                     </h2>
-                    <div class="mt-10 flex flex-col items-stretch gap-4 md:flex-row">
-                        <div class="flex-1">
-                            <MediaFilePicker
-                                label="Clip1（手元视频）"
-                                accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
-                                :file="store.clip1File"
-                                :probe="store.clip1Probe"
-                                @update="assignFile('clip1', $event)"
-                            />
-                        </div>
-                        <div class="flex-1">
-                            <MediaFilePicker
-                                label="Clip2（音频来源）"
-                                accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*"
-                                :file="store.clip2File"
-                                :probe="store.clip2Probe"
-                                @update="assignFile('clip2', $event)"
-                            />
+                    <div class="mt-10 grid gap-6 sm:grid-cols-2">
+                        <a
+                            href="https://uc.turou.fun/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="group rounded-lg bg-white/10 backdrop-blur-md p-6 transition-all hover:bg-white/20"
+                        >
+                            <div class="apple-card-title text-white group-hover:text-[#64d2ff]">
+                                兔兔实验室
+                            </div>
+                            <p class="mt-2 apple-caption text-white/60">
+                                将独特的设计与个性化的功能结合，快速定制属于你的高技术力周边，从创意到成品一步到位。
+                            </p>
+                            <span class="mt-4 inline-block apple-caption text-[#64d2ff] hover:underline">
+                                了解更多 &rsaquo;
+                            </span>
+                        </a>
+                        <div class="rounded-lg bg-white/10 backdrop-blur-md p-6">
+                            <div class="apple-card-title text-white">
+                                DAY的曲库窝
+                            </div>
+                            <p class="mt-2 apple-caption text-white/60">
+                                支持多种查分器的成绩管理工具。有则更加强大的搜索功能、支持自义定列表，可以对成绩进行整理，并且附带统计。
+                            </p>
+                            <div class="mt-4 flex gap-4">
+                                <a
+                                    href="https://song-collections.pages.dev/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="apple-caption text-[#64d2ff] hover:underline"
+                                >
+                                    官网 &rsaquo;
+                                </a>
+                                <a
+                                    href="https://github.com/DAYGoodTime/MaiMaiSongCollectionWeb"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="apple-caption text-[#64d2ff] hover:underline"
+                                >
+                                    GitHub &rsaquo;
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
-        </Transition>
 
-        <!-- Timeline Section (Dark) -->
-        <Transition name="fade-slide">
-            <section v-if="showTimelinePanel" class="section-dark py-16">
-                <div class="mx-auto max-w-245 px-4 md:px-6">
-                    <TimelinePanel
-                        :tracks="timelineTracks"
-                        :duration-sec="timelineDurationSec"
-                        :cursor-sec="timelineCursorSec"
-                        :cursor-percent="previewCursorPercent"
-                        :preview-offset-sec="currentPreviewOffsetSec"
-                        :preview-object-url="previewObjectUrl"
-                        :config="store.config"
-                        @update:cursor-sec="updateTimelineCursor"
-                        @update:audio1-gain-db="store.config.audio1GainDb = $event"
-                        @update:audio2-gain-db="store.config.audio2GainDb = $event"
-                        @toggle-mute="toggleMute"
-                    />
-                </div>
-            </section>
-        </Transition>
-
-        <!-- Related Projects Section (Light) -->
-        <section class="section-light py-16">
-            <div class="mx-auto max-w-245 px-4 md:px-6">
-                <h2 class="apple-section-heading text-center text-[#1d1d1f]">
-                    更多项目
-                </h2>
-                <div class="mt-10 grid gap-6 sm:grid-cols-2">
-                    <a
-                        href="https://uc.turou.fun/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="group rounded-lg bg-white p-6 shadow-[3px_5px_30px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[3px_5px_30px_rgba(0,0,0,0.12)]"
-                    >
-                        <div class="apple-card-title text-[#1d1d1f] group-hover:text-[#0071e3]">
-                            兔兔实验室
-                        </div>
-                        <p class="mt-2 apple-caption text-black/48">
-                            将独特的设计与个性化的功能结合，快速定制属于你的高技术力周边，从创意到成品一步到位。
-                        </p>
-                        <span class="mt-4 inline-block apple-caption text-[#0066cc] hover:underline">
-                            了解更多 &rsaquo;
-                        </span>
-                    </a>
-                    <div class="rounded-lg bg-white p-6 shadow-[3px_5px_30px_rgba(0,0,0,0.06)]">
-                        <div class="apple-card-title text-[#1d1d1f]">
-                            DAY的曲库窝
-                        </div>
-                        <p class="mt-2 apple-caption text-black/48">
-                            支持多种查分器的成绩管理工具。有则更加强大的搜索功能、支持自义定列表，可以对成绩进行整理，并且附带统计。
-                        </p>
-                        <div class="mt-4 flex gap-4">
-                            <a
-                                href="https://song-collections.pages.dev/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="apple-caption text-[#0066cc] hover:underline"
-                            >
-                                官网 &rsaquo;
-                            </a>
-                            <a
-                                href="https://github.com/DAYGoodTime/MaiMaiSongCollectionWeb"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="apple-caption text-[#0066cc] hover:underline"
-                            >
-                                GitHub &rsaquo;
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <AppFooter />
-        <ToastContainer />
+            <AppFooter />
+            <ToastContainer />
+        </div>
     </div>
 </template>

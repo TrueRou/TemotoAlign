@@ -18,13 +18,13 @@ const steps = [
                     class="flex size-6 items-center justify-center rounded-full apple-micro font-semibold transition-colors"
                     :class="index < props.currentStep
                         ? 'bg-[#0071e3] text-white'
-                        : 'bg-[#d2d2d7] text-[#1d1d1f]'"
+                        : 'bg-white/20 text-white/60'"
                 >
                     {{ index + 1 }}
                 </div>
                 <span
                     class="apple-micro"
-                    :class="index < props.currentStep ? 'text-[#1d1d1f] font-semibold' : 'text-black/48'"
+                    :class="index < props.currentStep ? 'text-white font-semibold' : 'text-white/48'"
                 >
                     {{ step.label }}
                 </span>
@@ -32,7 +32,7 @@ const steps = [
             <div
                 v-if="index < steps.length - 1"
                 class="mx-3 h-px w-8 transition-colors sm:w-12"
-                :class="index < props.currentStep - 1 ? 'bg-[#0071e3]' : 'bg-[#d2d2d7]'"
+                :class="index < props.currentStep - 1 ? 'bg-[#0071e3]' : 'bg-white/20'"
             />
         </template>
     </div>

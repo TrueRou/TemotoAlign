@@ -17,7 +17,7 @@ const confidenceIndicator = computed(() => {
 </script>
 
 <template>
-    <div class="rounded-lg bg-[#272729] p-5">
+    <div class="rounded-xl border border-white/10 bg-white/10 p-5 backdrop-blur-xl backdrop-saturate-150">
         <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
                 <h2 class="text-lg font-semibold text-white">
@@ -33,7 +33,7 @@ const confidenceIndicator = computed(() => {
         </div>
 
         <div v-if="props.result" class="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <div class="rounded-lg bg-[#1d1d1f] p-3">
+            <div class="rounded-lg bg-white/5 p-3">
                 <div class="apple-micro text-white/50">
                     Clip1 起点
                 </div>
@@ -41,7 +41,7 @@ const confidenceIndicator = computed(() => {
                     {{ props.result.clip1StartSec.toFixed(3) }}s
                 </div>
             </div>
-            <div class="rounded-lg bg-[#1d1d1f] p-3">
+            <div class="rounded-lg bg-white/5 p-3">
                 <div class="apple-micro text-white/50">
                     Clip2 起点
                 </div>
@@ -49,7 +49,7 @@ const confidenceIndicator = computed(() => {
                     {{ props.result.clip2StartSec.toFixed(3) }}s
                 </div>
             </div>
-            <div class="rounded-lg bg-[#1d1d1f] p-3">
+            <div class="rounded-lg bg-white/5 p-3">
                 <div class="apple-micro text-white/50">
                     偏移
                 </div>
@@ -57,7 +57,7 @@ const confidenceIndicator = computed(() => {
                     {{ props.result.offsetSec.toFixed(3) }}s
                 </div>
             </div>
-            <div class="rounded-lg bg-[#1d1d1f] p-3">
+            <div class="rounded-lg bg-white/5 p-3">
                 <div class="apple-micro text-white/50">
                     导出时长
                 </div>
