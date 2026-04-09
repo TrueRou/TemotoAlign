@@ -1,8 +1,8 @@
 <template>
-    <footer class="border-t border-base-300/60 bg-base-100/60 py-4">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 text-xs opacity-50 md:px-6">
-            <span>TemotoAlign by TuRou</span>
-            <span>Nuxt + DaisyUI</span>
+    <footer class="bg-[#f5f5f7] py-4">
+        <div class="mx-auto flex max-w-245 items-center justify-between px-4 apple-micro text-black/48 md:px-6">
+            <span>TemotoAlign by TuRou & DAYGood_Time</span>
+            <span>Nuxt + Librosa</span>
         </div>
     </footer>
 </template>

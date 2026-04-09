@@ -2,8 +2,31 @@
 
 @plugin 'daisyui';
 
-:root {
-    color-scheme: light dark;
+/* Override DaisyUI light theme with Apple color palette */
+:root, [data-theme="light"] {
+    --color-primary: oklch(0.546 0.245 262.881);       /* #0071e3 */
+    --color-primary-content: oklch(1 0 0);               /* #ffffff */
+    --color-secondary: oklch(0.546 0.245 262.881);       /* #0071e3 */
+    --color-secondary-content: oklch(1 0 0);
+    --color-accent: oklch(0.546 0.245 262.881);
+    --color-accent-content: oklch(1 0 0);
+    --color-neutral: oklch(0.21 0.006 285.885);          /* #1d1d1f */
+    --color-neutral-content: oklch(1 0 0);
+    --color-base-100: oklch(0.968 0.003 264.542);        /* #f5f5f7 */
+    --color-base-200: oklch(0.932 0.006 264.531);        /* #e8e8ed */
+    --color-base-300: oklch(0.862 0.006 264.531);        /* #d2d2d7 */
+    --color-base-content: oklch(0.21 0.006 285.885);     /* #1d1d1f */
+    --color-success: oklch(0.723 0.191 149.579);         /* #34c759 */
+    --color-success-content: oklch(1 0 0);
+    --color-warning: oklch(0.75 0.183 55.934);           /* #ff9f0a */
+    --color-warning-content: oklch(1 0 0);
+    --color-error: oklch(0.627 0.258 29.234);            /* #ff3b30 */
+    --color-error-content: oklch(1 0 0);
+    --color-info: oklch(0.546 0.245 262.881);
+    --color-info-content: oklch(1 0 0);
+    --radius-selector: 0.5rem;
+    --radius-field: 0.5rem;
+    --radius-box: 0.5rem;
 }
 
 html,
@@ -14,14 +37,80 @@ body,
 
 body {
     margin: 0;
-    font-family: Inter, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    @apply bg-base-200 text-base-content;
+    font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
 }
 
-.card-grid {
-    @apply grid gap-6 lg:grid-cols-2;
+/* Apple typography utilities */
+.apple-display-hero {
+    font-size: 56px;
+    font-weight: 600;
+    line-height: 1.07;
+    letter-spacing: -0.28px;
 }
 
+.apple-section-heading {
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.10;
+}
+
+.apple-tile-heading {
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.14;
+    letter-spacing: 0.196px;
+}
+
+.apple-card-title {
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.19;
+    letter-spacing: 0.231px;
+}
+
+.apple-body {
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+}
+
+.apple-caption {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.29;
+    letter-spacing: -0.224px;
+}
+
+.apple-micro {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.33;
+    letter-spacing: -0.12px;
+}
+
+/* Section helpers */
+.section-dark {
+    background: #000000;
+    color: #ffffff;
+}
+
+.section-dark a:not(.btn) {
+    color: #2997ff;
+}
+
+.section-light {
+    background: #f5f5f7;
+    color: #1d1d1f;
+}
+
+.section-light a:not(.btn) {
+    color: #0066cc;
+}
+
+/* Transitions */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
     transition: all 0.3s ease;
@@ -35,4 +124,23 @@ body {
 .fade-slide-leave-to {
     opacity: 0;
     transform: translateY(-12px);
+}
+
+/* Responsive hero text */
+@media (max-width: 768px) {
+    .apple-display-hero {
+        font-size: 32px;
+    }
+    .apple-section-heading {
+        font-size: 28px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .apple-display-hero {
+        font-size: 44px;
+    }
+    .apple-section-heading {
+        font-size: 34px;
+    }
 }

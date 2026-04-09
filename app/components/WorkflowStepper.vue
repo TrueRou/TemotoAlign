@@ -4,21 +4,36 @@ const props = defineProps<{
 }>()
 
 const steps = [
-    { label: '选择素材', icon: '1' },
-    { label: '对齐', icon: '2' },
-    { label: '预览 / 导出', icon: '3' },
+    { label: '选择素材' },
+    { label: '对齐' },
+    { label: '预览 / 导出' },
 ]
 </script>
 
 <template>
-    <ul class="steps w-full">
-        <li
-            v-for="(step, index) in steps"
-            :key="index"
-            class="step"
-            :class="{ 'step-primary': index < props.currentStep }"
-        >
-            {{ step.label }}
-        </li>
-    </ul>
+    <div class="flex items-center justify-center gap-0">
+        <template v-for="(step, index) in steps" :key="index">
+            <div class="flex items-center gap-2">
+                <div
+                    class="flex size-6 items-center justify-center rounded-full apple-micro font-semibold transition-colors"
+                    :class="index < props.currentStep
+                        ? 'bg-[#0071e3] text-white'
+                        : 'bg-[#d2d2d7] text-[#1d1d1f]'"
+                >
+                    {{ index + 1 }}
+                </div>
+                <span
+                    class="apple-micro"
+                    :class="index < props.currentStep ? 'text-[#1d1d1f] font-semibold' : 'text-black/48'"
+                >
+                    {{ step.label }}
+                </span>
+            </div>
+            <div
+                v-if="index < steps.length - 1"
+                class="mx-3 h-px w-8 transition-colors sm:w-12"
+                :class="index < props.currentStep - 1 ? 'bg-[#0071e3]' : 'bg-[#d2d2d7]'"
+            />
+        </template>
+    </div>
 </template>

@@ -19,12 +19,6 @@ const trackControls = reactive<Record<TrackId, { mute: boolean }>>({
 const previewObjectUrl = ref<string | null>(null)
 const timelineCursorSec = ref(0)
 const supportsAudioEncoder = ref(true)
-const showExportSettings = ref(false)
-
-const exportMethodLabel = computed(() => {
-    return store.exportMethod === 'remux' ? '速度优先（直通封装）' : '兼容模式（WebCodecs 转码）'
-})
-
 const hasSelectedMedia = computed(() => Boolean(store.clip1File && store.clip2File))
 const hasStartedAlignFlow = computed(() => store.task.phase !== 'idle' || Boolean(store.alignResult))
 const showInputPanel = computed(() => !hasStartedAlignFlow.value)
@@ -323,154 +317,184 @@ async function runExport() {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col">
+    <div class="flex min-h-screen flex-col bg-[#f5f5f7]">
         <AppHeader />
 
-        <main class="mx-auto flex max-w-7xl flex-1 flex-col gap-6 px-4 py-8 md:px-6">
-            <WorkflowStepper :current-step="currentStep" />
+        <!-- Hero Section (Dark) -->
+        <section class="section-dark py-20">
+            <div class="mx-auto max-w-245 px-4 md:px-6">
+                <WorkflowStepper :current-step="currentStep" class="mb-12" />
 
-            <ClientOnly>
-                <div
-                    v-if="!supportsAudioEncoder"
-                    class="rounded-3xl border border-warning/40 bg-warning/12 px-4 py-3 text-sm text-warning-content shadow-sm"
-                >
-                    当前浏览器缺少 `AudioEncoder` 支持，无法正常导出视频。请更换为较新的 Chrome、Edge 或其它兼容浏览器。
-                </div>
-            </ClientOnly>
+                <ClientOnly>
+                    <div
+                        v-if="!supportsAudioEncoder"
+                        class="mb-8 rounded-lg bg-[#ff9f0a]/10 px-4 py-3 apple-caption text-[#ff9f0a]"
+                    >
+                        当前浏览器缺少 AudioEncoder 支持，无法正常导出视频。请更换为较新的 Chrome、Edge 或其它兼容浏览器。
+                    </div>
+                </ClientOnly>
 
-            <section class="overflow-hidden rounded-4xl border border-base-300 bg-linear-to-br from-base-100 via-base-100 to-base-200">
-                <div class="grid gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:px-8">
-                    <div class="space-y-5">
-                        <h1 class="mt-4 text-4xl font-bold">
-                            TemotoAlign
-                        </h1>
-                        <p class="mt-3 max-w-2xl text-sm leading-7 opacity-75">
-                            一键对齐手元视频与高质量音频，导出可直接使用的手元成品。
-                        </p>
-                        <div class="flex flex-wrap gap-2">
-                            <button class="btn btn-primary" :disabled="!canStartAlign" @click="runAlign">
-                                <span v-if="isAligning" class="loading loading-spinner loading-sm" />
-                                {{ isAligning ? '对齐中...' : '开始对齐' }}
-                            </button>
-                            <button class="btn btn-secondary" :disabled="!store.alignResult || isAligning || isExporting" @click="runExport()">
-                                <span v-if="isExporting" class="loading loading-spinner loading-sm" />
-                                {{ isExporting ? '导出中...' : '导出视频' }}
-                            </button>
-                            <button v-if="store.alignResult" class="btn btn-outline" :disabled="isAligning || isExporting" @click="resetAll">
-                                重置
-                            </button>
-                        </div>
+                <div class="text-center">
+                    <h1 class="apple-display-hero text-white">
+                        TemotoAlign
+                    </h1>
+                    <p class="mx-auto mt-4 max-w-xl text-[21px] font-normal leading-[1.19] tracking-[0.231px] text-white/80">
+                        一键对齐手元视频与高质量音频，导出可直接使用的手元成品。
+                    </p>
 
-                        <div class="rounded-2xl border border-base-300 bg-base-200/50">
-                            <button
-                                class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
-                                @click="showExportSettings = !showExportSettings"
-                            >
-                                <span>导出设置 · {{ exportMethodLabel }}</span>
-                                <svg
-                                    class="h-4 w-4 transition-transform" :class="{ 'rotate-180': showExportSettings }"
-                                    viewBox="0 0 20 20" fill="currentColor"
-                                >
-                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div v-if="showExportSettings" class="border-t border-base-300 px-4 py-4">
-                                <fieldset class="space-y-2">
-                                    <legend class="mb-2 text-xs font-semibold opacity-70">
-                                        导出模式
-                                    </legend>
-                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
-                                        <input
-                                            v-model="store.exportMethod"
-                                            type="radio"
-                                            name="exportMethod"
-                                            value="remux"
-                                            class="radio radio-primary mt-0.5"
-                                        >
-                                        <div>
-                                            <div class="text-sm font-medium">
-                                                速度优先（直通封装）
-                                            </div>
-                                            <div class="text-xs opacity-60">
-                                                直接复制源视频编码数据，速度快但依赖源文件编码兼容性。
-                                            </div>
-                                        </div>
-                                    </label>
-                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl bg-base-100 p-3">
-                                        <input
-                                            v-model="store.exportMethod"
-                                            type="radio"
-                                            name="exportMethod"
-                                            value="webcodecs"
-                                            class="radio radio-secondary mt-0.5"
-                                        >
-                                        <div>
-                                            <div class="text-sm font-medium">
-                                                兼容模式（WebCodecs 转码）
-                                            </div>
-                                            <div class="text-xs opacity-60">
-                                                使用 WebCodecs 重新编码视频为 H.264，兼容性更好但速度较慢。
-                                            </div>
-                                        </div>
-                                    </label>
-                                </fieldset>
-                            </div>
-                        </div>
+                    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            class="btn bg-[#0071e3] text-white border-transparent hover:bg-[#0077ed]"
+                            :disabled="!canStartAlign"
+                            @click="runAlign"
+                        >
+                            <span v-if="isAligning" class="loading loading-spinner loading-sm" />
+                            {{ isAligning ? '对齐中...' : '开始对齐' }}
+                        </button>
+                        <button
+                            class="btn bg-[#1d1d1f] text-white border-transparent hover:bg-[#333336]"
+                            :disabled="!store.alignResult || isAligning || isExporting"
+                            @click="runExport()"
+                        >
+                            <span v-if="isExporting" class="loading loading-spinner loading-sm" />
+                            {{ isExporting ? '导出中...' : '导出视频' }}
+                        </button>
+                        <button
+                            v-if="store.alignResult"
+                            class="rounded-[980px] border border-white/30 px-4 py-2 apple-caption text-white transition-colors hover:bg-white/10"
+                            :disabled="isAligning || isExporting"
+                            @click="resetAll"
+                        >
+                            重置
+                        </button>
+                    </div>
+                    <!-- Export settings -->
+                    <div class="mx-auto mt-6 flex max-w-md items-center justify-center gap-3">
+                        <span class="apple-caption text-white/60">封装方式</span>
+                        <select
+                            v-model="store.exportMethod"
+                            class="rounded-lg border border-white/10 bg-[#272729] px-3 py-2 apple-caption text-white/80 outline-none transition-colors hover:bg-[#333336]"
+                        >
+                            <option value="remux">
+                                速度优先（直通封装）
+                            </option>
+                            <option value="webcodecs">
+                                兼容模式（WebCodecs 转码）
+                            </option>
+                        </select>
                     </div>
 
-                    <AlignStatusPanel :result="store.alignResult" :task="store.task" />
+                    <!-- Status panel -->
+                    <div class="mx-auto mt-8 max-w-2xl">
+                        <AlignStatusPanel :result="store.alignResult" :task="store.task" />
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- Input Section (Light) -->
+        <Transition name="fade-slide">
+            <section v-if="showInputPanel" class="section-light py-16">
+                <div class="mx-auto max-w-245 px-4 md:px-6">
+                    <h2 class="apple-section-heading text-center text-[#1d1d1f]">
+                        素材输入
+                    </h2>
+                    <div class="mt-10 flex flex-col items-stretch gap-4 md:flex-row">
+                        <div class="flex-1">
+                            <MediaFilePicker
+                                label="Clip1（手元视频）"
+                                accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
+                                :file="store.clip1File"
+                                :probe="store.clip1Probe"
+                                @update="assignFile('clip1', $event)"
+                            />
+                        </div>
+                        <div class="flex-1">
+                            <MediaFilePicker
+                                label="Clip2（音频来源）"
+                                accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*"
+                                :file="store.clip2File"
+                                :probe="store.clip2Probe"
+                                @update="assignFile('clip2', $event)"
+                            />
+                        </div>
+                    </div>
                 </div>
             </section>
+        </Transition>
 
-            <Transition name="fade-slide">
-                <section v-if="showInputPanel" class="rounded-4xl border border-base-300 bg-base-100 p-4 sm:p-6">
-                    <div class="space-y-6">
-                        <div>
-                            <h2 class="text-xl font-semibold">
-                                素材输入
-                            </h2>
+        <!-- Timeline Section (Dark) -->
+        <Transition name="fade-slide">
+            <section v-if="showTimelinePanel" class="section-dark py-16">
+                <div class="mx-auto max-w-245 px-4 md:px-6">
+                    <TimelinePanel
+                        :tracks="timelineTracks"
+                        :duration-sec="timelineDurationSec"
+                        :cursor-sec="timelineCursorSec"
+                        :cursor-percent="previewCursorPercent"
+                        :preview-offset-sec="currentPreviewOffsetSec"
+                        :preview-object-url="previewObjectUrl"
+                        :config="store.config"
+                        @update:cursor-sec="updateTimelineCursor"
+                        @update:audio1-gain-db="store.config.audio1GainDb = $event"
+                        @update:audio2-gain-db="store.config.audio2GainDb = $event"
+                        @toggle-mute="toggleMute"
+                    />
+                </div>
+            </section>
+        </Transition>
+
+        <!-- Related Projects Section (Light) -->
+        <section class="section-light py-16">
+            <div class="mx-auto max-w-245 px-4 md:px-6">
+                <h2 class="apple-section-heading text-center text-[#1d1d1f]">
+                    更多项目
+                </h2>
+                <div class="mt-10 grid gap-6 sm:grid-cols-2">
+                    <a
+                        href="https://uc.turou.fun/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="group rounded-lg bg-white p-6 shadow-[3px_5px_30px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[3px_5px_30px_rgba(0,0,0,0.12)]"
+                    >
+                        <div class="apple-card-title text-[#1d1d1f] group-hover:text-[#0071e3]">
+                            兔兔实验室
                         </div>
-                        <div class="flex flex-col gap-4 md:flex-row">
-                            <div class="flex-1">
-                                <MediaFilePicker
-                                    label="Clip1（手元视频）"
-                                    accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
-                                    :file="store.clip1File"
-                                    :probe="store.clip1Probe"
-                                    @update="assignFile('clip1', $event)"
-                                />
-                            </div>
-                            <div class="flex-1">
-                                <MediaFilePicker
-                                    label="Clip2（音频来源）"
-                                    accept="video/mp4,video/quicktime,video/webm,video/x-matroska,audio/*"
-                                    :file="store.clip2File"
-                                    :probe="store.clip2Probe"
-                                    @update="assignFile('clip2', $event)"
-                                />
-                            </div>
+                        <p class="mt-2 apple-caption text-black/48">
+                            将独特的设计与个性化的功能结合，快速定制属于你的高技术力周边，从创意到成品一步到位。
+                        </p>
+                        <span class="mt-4 inline-block apple-caption text-[#0066cc] hover:underline">
+                            了解更多 &rsaquo;
+                        </span>
+                    </a>
+                    <div class="rounded-lg bg-white p-6 shadow-[3px_5px_30px_rgba(0,0,0,0.06)]">
+                        <div class="apple-card-title text-[#1d1d1f]">
+                            DAY的曲库窝
+                        </div>
+                        <p class="mt-2 apple-caption text-black/48">
+                            支持多种查分器的成绩管理工具。有则更加强大的搜索功能、支持自义定列表，可以对成绩进行整理，并且附带统计。
+                        </p>
+                        <div class="mt-4 flex gap-4">
+                            <a
+                                href="https://song-collections.pages.dev/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="apple-caption text-[#0066cc] hover:underline"
+                            >
+                                官网 &rsaquo;
+                            </a>
+                            <a
+                                href="https://github.com/DAYGoodTime/MaiMaiSongCollectionWeb"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="apple-caption text-[#0066cc] hover:underline"
+                            >
+                                GitHub &rsaquo;
+                            </a>
                         </div>
                     </div>
-                </section>
-            </Transition>
-
-            <Transition name="fade-slide">
-                <TimelinePanel
-                    v-if="showTimelinePanel"
-                    :tracks="timelineTracks"
-                    :duration-sec="timelineDurationSec"
-                    :cursor-sec="timelineCursorSec"
-                    :cursor-percent="previewCursorPercent"
-                    :preview-offset-sec="currentPreviewOffsetSec"
-                    :preview-object-url="previewObjectUrl"
-                    :config="store.config"
-                    @update:cursor-sec="updateTimelineCursor"
-                    @update:audio1-gain-db="store.config.audio1GainDb = $event"
-                    @update:audio2-gain-db="store.config.audio2GainDb = $event"
-                    @toggle-mute="toggleMute"
-                />
-            </Transition>
-        </main>
+                </div>
+            </div>
+        </section>
 
         <AppFooter />
         <ToastContainer />

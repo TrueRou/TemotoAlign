@@ -1,12 +1,10 @@
 <script setup lang="ts">
 const { toasts, dismiss } = useToast()
 
-function alertClass(type: string) {
-    if (type === 'success')
-        return 'alert-success'
+function toastClass(type: string) {
     if (type === 'error')
-        return 'alert-error'
-    return 'alert-info'
+        return 'bg-[#ff3b30] text-white'
+    return 'bg-[#1d1d1f] text-white'
 }
 </script>
 
@@ -22,11 +20,11 @@ function alertClass(type: string) {
                 <div
                     v-for="toast in toasts"
                     :key="toast.id"
-                    class="alert shadow-lg"
-                    :class="alertClass(toast.type)"
+                    class="cursor-pointer rounded-lg px-4 py-3 shadow-[3px_5px_30px_rgba(0,0,0,0.22)]"
+                    :class="toastClass(toast.type)"
                     @click="dismiss(toast.id)"
                 >
-                    <span class="text-sm">{{ toast.message }}</span>
+                    <span class="apple-caption">{{ toast.message }}</span>
                 </div>
             </TransitionGroup>
         </div>

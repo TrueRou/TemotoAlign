@@ -63,26 +63,26 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
 </script>
 
 <template>
-    <section class="rounded-4xl border border-base-300 bg-base-100 p-6">
+    <section class="section-dark rounded-lg p-6">
         <div class="space-y-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-xl font-semibold">
+                    <h2 class="text-xl font-semibold text-white">
                         可视化时间轴
                     </h2>
-                    <p class="text-sm opacity-70">
+                    <p class="apple-caption text-white/50">
                         对齐完成后会按起始时间排布。拖动底部游标即可预览。
                     </p>
                 </div>
-                <div class="flex flex-wrap gap-2 text-xs">
-                    <span class="rounded-full border border-base-300 px-3 py-1">时间轴总长 {{ formatSeconds(props.durationSec) }}</span>
-                    <span class="rounded-full border border-base-300 px-3 py-1">预览位置 {{ formatSeconds(props.previewOffsetSec) }}</span>
+                <div class="flex flex-wrap gap-2">
+                    <span class="rounded-full bg-[#272729] px-3 py-1 apple-micro text-white/50">时间轴总长 {{ formatSeconds(props.durationSec) }}</span>
+                    <span class="rounded-full bg-[#272729] px-3 py-1 apple-micro text-white/50">预览位置 {{ formatSeconds(props.previewOffsetSec) }}</span>
                 </div>
             </div>
 
             <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
-                <div class="rounded-3xl bg-base-200 p-4">
-                    <div class="mb-4 flex items-center justify-between text-xs opacity-60">
+                <div class="rounded-lg bg-[#1d1d1f] p-4">
+                    <div class="mb-4 flex items-center justify-between apple-micro text-white/40">
                         <span>0s</span>
                         <span>{{ formatSeconds(props.durationSec / 2) }}</span>
                         <span>{{ formatSeconds(props.durationSec) }}</span>
@@ -92,37 +92,37 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
                         <div
                             v-for="track in props.tracks"
                             :key="track.id"
-                            class="flex gap-3 rounded-2xl bg-base-100/70 p-3"
+                            class="flex gap-3 rounded-lg bg-[#272729] p-3"
                         >
-                            <div class="relative flex min-h-24 flex-1 items-center overflow-hidden rounded-2xl bg-base-300/40 px-3">
-                                <div class="absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-base-content/10" />
-                                <div class="absolute inset-y-2 left-0 w-px bg-base-content/10" />
-                                <div class="absolute inset-y-2 right-0 w-px bg-base-content/10" />
+                            <div class="relative flex min-h-24 flex-1 items-center overflow-hidden rounded-lg bg-black/40 px-3">
+                                <div class="absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-white/10" />
+                                <div class="absolute inset-y-2 left-0 w-px bg-white/10" />
+                                <div class="absolute inset-y-2 right-0 w-px bg-white/10" />
                                 <div
-                                    class="absolute inset-y-3 rounded-xl bg-linear-to-r shadow-lg"
-                                    :class="[track.colorClass, track.glowClass, track.muted ? 'opacity-35' : 'opacity-95']"
+                                    class="absolute inset-y-3 rounded-lg bg-[#0071e3] transition-opacity"
+                                    :class="track.muted ? 'opacity-25' : (track.id === 'clip1' ? 'opacity-90' : 'opacity-60')"
                                     :style="{
                                         left: `${Math.min(track.offsetPercent, 100)}%`,
                                         width: `${Math.max(Math.min(track.widthPercent, 100 - track.offsetPercent), 4)}%`,
                                     }"
                                 >
-                                    <div v-if="track.durationSec" class="flex h-full items-center justify-between px-4 text-[11px] font-medium text-primary-content">
+                                    <div v-if="track.durationSec" class="flex h-full items-center justify-between px-4 apple-micro font-medium text-white">
                                         <span>{{ formatSeconds(track.startSec) }}</span>
                                         <span>{{ formatSeconds(track.durationSec) }}</span>
                                     </div>
                                 </div>
                                 <div
-                                    class="pointer-events-none absolute inset-y-1 w-0.5 bg-accent shadow-[0_0_0_1px_rgba(255,255,255,0.35)]"
+                                    class="pointer-events-none absolute inset-y-1 w-0.5 bg-[#0071e3] shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
                                     :style="{ left: `${props.cursorPercent}%` }"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 rounded-2xl bg-base-100/80 p-4">
+                    <div class="mt-4 rounded-lg bg-[#272729] p-4">
                         <input
                             :value="props.cursorSec"
-                            class="range range-accent w-full"
+                            class="range range-primary w-full"
                             type="range"
                             min="0"
                             :max="props.durationSec"
@@ -131,20 +131,19 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
                         >
                     </div>
                 </div>
-
-                <div class="rounded-3xl bg-base-200 p-4">
+                <div class="rounded-lg bg-[#1d1d1f] p-4">
                     <div class="mb-4">
-                        <h3 class="text-lg font-semibold">
+                        <h3 class="text-lg font-semibold text-white">
                             控制区
                         </h3>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="rounded-2xl bg-base-100/80 p-4">
-                            <div class="text-sm font-semibold">
+                        <div class="rounded-lg bg-[#272729] p-4">
+                            <div class="apple-caption font-semibold text-white">
                                 Clip1
                             </div>
-                            <div class="mt-1 text-xs opacity-60">
+                            <div class="mt-1 apple-micro text-white/50">
                                 手元视频
                             </div>
                             <div class="mt-4 flex h-40 items-center justify-center">
@@ -160,13 +159,15 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
                                     >
                                 </div>
                             </div>
-                            <div class="text-center text-sm font-medium text-primary">
+                            <div class="text-center apple-caption font-medium text-[#0071e3]">
                                 {{ props.config.audio1GainDb.toFixed(1) }} dB
                             </div>
                             <div class="mt-3 flex justify-center">
                                 <button
-                                    class="btn btn-sm"
-                                    :class="props.tracks[0]?.muted ? 'btn-error' : 'btn-outline btn-primary'"
+                                    class="rounded-lg px-3 py-1.5 apple-micro font-medium transition-colors"
+                                    :class="props.tracks[0]?.muted
+                                        ? 'bg-[#ff3b30] text-white'
+                                        : 'border border-[#0071e3] text-[#0071e3]'"
                                     @click="emit('toggleMute', 'clip1')"
                                 >
                                     {{ props.tracks[0]?.muted ? '取消静音' : '静音轨道' }}
@@ -174,18 +175,18 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
                             </div>
                         </div>
 
-                        <div class="rounded-2xl bg-base-100/80 p-4">
-                            <div class="text-sm font-semibold">
+                        <div class="rounded-lg bg-[#272729] p-4">
+                            <div class="apple-caption font-semibold text-white">
                                 Clip2
                             </div>
-                            <div class="mt-1 text-xs opacity-60">
+                            <div class="mt-1 apple-micro text-white/50">
                                 对齐音轨
                             </div>
                             <div class="mt-4 flex h-40 items-center justify-center">
                                 <div class="relative flex h-36 w-16 items-center justify-center">
                                     <input
                                         :value="props.config.audio2GainDb"
-                                        class="range range-secondary absolute w-36 -rotate-90"
+                                        class="range range-primary absolute w-36 -rotate-90"
                                         type="range"
                                         min="-18"
                                         max="6"
@@ -194,13 +195,15 @@ watch(() => props.previewOffsetSec, () => syncPreviewVideoTime())
                                     >
                                 </div>
                             </div>
-                            <div class="text-center text-sm font-medium text-secondary">
+                            <div class="text-center apple-caption font-medium text-[#0071e3]">
                                 {{ props.config.audio2GainDb.toFixed(1) }} dB
                             </div>
                             <div class="mt-3 flex justify-center">
                                 <button
-                                    class="btn btn-sm"
-                                    :class="props.tracks[1]?.muted ? 'btn-error' : 'btn-outline btn-secondary'"
+                                    class="rounded-lg px-3 py-1.5 apple-micro font-medium transition-colors"
+                                    :class="props.tracks[1]?.muted
+                                        ? 'bg-[#ff3b30] text-white'
+                                        : 'border border-[#0071e3] text-[#0071e3]'"
                                     @click="emit('toggleMute', 'clip2')"
                                 >
                                     {{ props.tracks[1]?.muted ? '取消静音' : '静音轨道' }}
